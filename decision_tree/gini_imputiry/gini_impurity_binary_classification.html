@@ -10,24 +10,24 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0f1117;
-    --bg2: #181c27;
-    --bg3: #1e2336;
-    --card: #1a1f2e;
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.15);
-    --text: #e8eaf2;
-    --text2: #8b90a7;
-    --text3: #555c78;
-    --red: #e84855;
-    --blue: #3d8ef0;
-    --teal: #2ec4a9;
-    --amber: #f5a623;
-    --red-dim: rgba(232,72,85,0.15);
-    --blue-dim: rgba(61,142,240,0.15);
-    --teal-dim: rgba(46,196,169,0.12);
-    --font: 'Noto Sans KR', sans-serif;
-    --mono: 'JetBrains Mono', monospace;
+    --bg:      #f5f6f8;
+    --bg2:     #eef0f3;
+    --bg3:     #e6e8ed;
+    --card:    #ffffff;
+    --border:  rgba(0,0,0,0.08);
+    --border2: rgba(0,0,0,0.14);
+    --text:    #1a1d24;
+    --text2:   #5a5f72;
+    --text3:   #9096a8;
+    --red:     #d93f4c;
+    --blue:    #2878e0;
+    --teal:    #0fa884;
+    --amber:   #c97d10;
+    --red-dim:  rgba(217,63,76,0.10);
+    --blue-dim: rgba(40,120,224,0.10);
+    --teal-dim: rgba(15,168,132,0.10);
+    --font:    'Noto Sans KR', sans-serif;
+    --mono:    'JetBrains Mono', monospace;
   }
 
   body {
@@ -38,101 +38,62 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 40px 20px 60px;
-  }
-
-  header {
-    text-align: center;
-    margin-bottom: 40px;
-    position: relative;
-  }
-
-  .tag {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--teal);
-    background: var(--teal-dim);
-    border: 1px solid rgba(46,196,169,0.25);
-    padding: 4px 12px;
-    border-radius: 20px;
-    margin-bottom: 14px;
-  }
-
-  h1 {
-    font-size: clamp(22px, 4vw, 32px);
-    font-weight: 700;
-    color: var(--text);
-    line-height: 1.2;
-    margin-bottom: 8px;
-  }
-
-  h1 span { color: var(--red); }
-
-  .subtitle {
-    font-size: 14px;
-    color: var(--text2);
-    font-weight: 300;
+    padding: 36px 20px 56px;
   }
 
   .formula-banner {
-    background: var(--bg3);
+    width: 100%;
+    max-width: 860px;
+    background: var(--card);
     border: 1px solid var(--border2);
     border-radius: 12px;
     padding: 14px 24px;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
     font-family: var(--mono);
-    font-size: 15px;
+    font-size: 14px;
     color: var(--text);
     text-align: center;
     letter-spacing: 0.02em;
   }
 
   .formula-banner span.var { color: var(--teal); }
-  .formula-banner span.num { color: var(--amber); }
+  .formula-banner span.num { color: var(--amber); font-weight: 600; }
 
   .main-grid {
     width: 100%;
     max-width: 860px;
     display: grid;
-    gap: 20px;
+    gap: 18px;
   }
 
   .card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 14px;
     padding: 20px 24px;
   }
 
   .card-label {
     font-size: 11px;
     font-weight: 500;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--text3);
-    margin-bottom: 14px;
+    margin-bottom: 16px;
   }
 
   /* SLIDER CARD */
-  .slider-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
   .slider-info {
     display: flex;
     gap: 24px;
     margin-bottom: 16px;
+    flex-wrap: wrap;
   }
 
   .si-item { display: flex; flex-direction: column; gap: 2px; }
-  .si-label { font-size: 11px; color: var(--text3); letter-spacing: 0.05em; }
+  .si-label { font-size: 11px; color: var(--text3); letter-spacing: 0.04em; }
   .si-val { font-size: 26px; font-weight: 700; font-family: var(--mono); }
-  .si-val.red { color: var(--red); }
+  .si-val.red  { color: var(--red); }
   .si-val.blue { color: var(--blue); }
   .si-val.gini { color: var(--teal); }
 
@@ -140,7 +101,7 @@
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
-    height: 5px;
+    height: 4px;
     background: var(--bg3);
     border-radius: 4px;
     outline: none;
@@ -150,12 +111,12 @@
 
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: var(--red);
-    border: 3px solid var(--bg);
-    box-shadow: 0 0 0 2px var(--red);
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1.5px var(--red);
     cursor: pointer;
     transition: transform 0.1s;
   }
@@ -171,8 +132,27 @@
     font-family: var(--mono);
   }
 
+  /* STATE BADGE */
+  .state-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: 10px;
+    transition: all 0.3s;
+  }
+
+  .badge-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
   /* BASKET */
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 
   #basket {
     display: flex;
@@ -181,7 +161,7 @@
     padding: 14px;
     background: var(--bg2);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 10px;
     min-height: 80px;
     align-content: flex-start;
   }
@@ -245,37 +225,17 @@
   .formula-live {
     background: var(--bg2);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 18px;
+    border-radius: 9px;
+    padding: 13px 16px;
     font-family: var(--mono);
-    font-size: 13.5px;
+    font-size: 13px;
     color: var(--text2);
-    line-height: 1.9;
-    margin-top: 16px;
+    line-height: 2;
   }
 
-  .formula-live .hl-r { color: var(--red); font-weight: 600; }
+  .formula-live .hl-r { color: var(--red);  font-weight: 600; }
   .formula-live .hl-b { color: var(--blue); font-weight: 600; }
   .formula-live .hl-t { color: var(--teal); font-weight: 700; }
-
-  /* STATE BADGE */
-  .state-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 14px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    margin-left: 12px;
-    transition: all 0.3s;
-  }
-
-  .badge-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-  }
 
   /* CHART */
   .chart-wrap {
@@ -300,25 +260,20 @@
     transition: border-color 0.3s;
   }
 
-  .insight-card.active { border-color: var(--teal); background: rgba(46,196,169,0.06); }
+  .insight-card.active {
+    border-color: rgba(15,168,132,0.4);
+    background: rgba(15,168,132,0.05);
+  }
 
   .ic-value {
     font-size: 22px;
     font-weight: 700;
     font-family: var(--mono);
-    color: var(--text);
     margin-bottom: 2px;
   }
 
-  .ic-label { font-size: 11px; color: var(--text3); }
-  .ic-desc { font-size: 12px; color: var(--text2); margin-top: 4px; }
-
-  footer {
-    margin-top: 48px;
-    font-size: 12px;
-    color: var(--text3);
-    text-align: center;
-  }
+  .ic-label { font-size: 11px; color: var(--text3); letter-spacing: 0.03em; }
+  .ic-desc  { font-size: 12px; color: var(--text2); margin-top: 4px; }
 
   @media (max-width: 600px) {
     .two-col { grid-template-columns: 1fr; }
@@ -439,8 +394,8 @@ function initChart() {
         {
           label: '지니 불순도',
           data: giniData,
-          borderColor: '#e84855',
-          backgroundColor: 'rgba(232,72,85,0.07)',
+          borderColor: '#d93f4c',
+          backgroundColor: 'rgba(217,63,76,0.07)',
           fill: true,
           pointRadius: 0,
           borderWidth: 2.5,
@@ -449,11 +404,11 @@ function initChart() {
         {
           label: '현재 위치',
           data: [],
-          borderColor: '#2ec4a9',
+          borderColor: '#0fa884',
           borderWidth: 0,
           pointRadius: 8,
-          pointBackgroundColor: '#2ec4a9',
-          pointBorderColor: '#0f1117',
+          pointBackgroundColor: '#0fa884',
+          pointBorderColor: '#ffffff',
           pointBorderWidth: 3,
           showLine: false
         }
@@ -466,11 +421,11 @@ function initChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#1e2336',
-          borderColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: '#ffffff',
+          borderColor: 'rgba(0,0,0,0.12)',
           borderWidth: 1,
-          titleColor: '#8b90a7',
-          bodyColor: '#e8eaf2',
+          titleColor: '#5a5f72',
+          bodyColor:  '#1a1d24',
           callbacks: {
             title: items => `사과 비율: ${items[0].label}%`,
             label: item => ` Gini = ${parseFloat(item.formattedValue).toFixed(3)}`
@@ -479,21 +434,21 @@ function initChart() {
       },
       scales: {
         x: {
-          title: { display: true, text: '사과 비율 (%)', color: '#555c78', font: { size: 11 } },
+          title: { display: true, text: '사과 비율 (%)', color: '#9096a8', font: { size: 11 } },
           ticks: {
-            color: '#555c78', font: { size: 10 },
+            color: '#9096a8', font: { size: 10 },
             callback: v => v % 25 === 0 ? v + '%' : '',
             autoSkip: false, maxRotation: 0
           },
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          border: { color: 'rgba(255,255,255,0.08)' }
+          grid:   { color: 'rgba(0,0,0,0.05)' },
+          border: { color: 'rgba(0,0,0,0.09)' }
         },
         y: {
           min: 0, max: 0.56,
-          title: { display: true, text: '지니 불순도', color: '#555c78', font: { size: 11 } },
-          ticks: { color: '#555c78', font: { size: 10 }, callback: v => v.toFixed(1) },
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          border: { color: 'rgba(255,255,255,0.08)' }
+          title: { display: true, text: '지니 불순도', color: '#9096a8', font: { size: 11 } },
+          ticks: { color: '#9096a8', font: { size: 10 }, callback: v => v.toFixed(1) },
+          grid:   { color: 'rgba(0,0,0,0.05)' },
+          border: { color: 'rgba(0,0,0,0.09)' }
         }
       }
     }
@@ -521,21 +476,24 @@ function update(val) {
   const dot = document.getElementById('badge-dot');
   const badgeText = document.getElementById('badge-text');
   if (p === 0 || p === 100) {
-    badge.style.background = 'rgba(46,196,169,0.15)';
-    badge.style.color = '#2ec4a9';
-    dot.style.background = '#2ec4a9';
+    badge.style.background = 'rgba(15,168,132,0.12)';
+    badge.style.border = '1px solid rgba(15,168,132,0.3)';
+    badge.style.color = '#0fa884';
+    dot.style.background = '#0fa884';
     badgeText.textContent = '완전 순수';
     document.getElementById('ic-cur-desc').textContent = '한 클래스만 존재 → 완전히 순수한 노드';
   } else if (p >= 45 && p <= 55) {
-    badge.style.background = 'rgba(232,72,85,0.15)';
-    badge.style.color = '#e84855';
-    dot.style.background = '#e84855';
+    badge.style.background = 'rgba(217,63,76,0.09)';
+    badge.style.border = '1px solid rgba(217,63,76,0.3)';
+    badge.style.color = '#d93f4c';
+    dot.style.background = '#d93f4c';
     badgeText.textContent = '최대 불순도';
     document.getElementById('ic-cur-desc').textContent = '정확히 반반에 가까울수록 불순도 최대';
   } else {
-    badge.style.background = 'rgba(245,166,35,0.12)';
-    badge.style.color = '#f5a623';
-    dot.style.background = '#f5a623';
+    badge.style.background = 'rgba(201,125,16,0.10)';
+    badge.style.border = '1px solid rgba(201,125,16,0.3)';
+    badge.style.color = '#c97d10';
+    dot.style.background = '#c97d10';
     badgeText.textContent = '혼합';
     document.getElementById('ic-cur-desc').textContent = '슬라이더를 움직여 변화를 확인하세요';
   }
@@ -548,37 +506,37 @@ function update(val) {
   for (let i = 0; i < total; i++) {
     const f = document.createElement('div');
     f.className = 'fruit';
-    f.style.background = i < apples ? 'rgba(232,72,85,0.2)' : 'rgba(61,142,240,0.2)';
-    f.style.border = `1.5px solid ${i < apples ? '#e84855' : '#3d8ef0'}`;
+    f.style.background = i < apples ? 'rgba(217,63,76,0.12)' : 'rgba(40,120,224,0.12)';
+    f.style.border = `1.5px solid ${i < apples ? '#d93f4c' : '#2878e0'}`;
     f.textContent = i < apples ? '🍎' : '🍊';
     basket.appendChild(f);
   }
 
   // Squares
   const maxSide = 64;
-  const sideA = Math.round(maxSide * Math.sqrt(sqA / 0.25));
-  const sideB = Math.round(maxSide * Math.sqrt(sqB / 0.25));
+  const sideA   = Math.round(maxSide * Math.sqrt(sqA / 0.25));
+  const sideB   = Math.round(maxSide * Math.sqrt(sqB / 0.25));
   const sideSum = Math.round(maxSide * Math.sqrt(sumSq / 0.5));
   document.getElementById('squares-row').innerHTML = `
     <div class="sq-box">
-      <div class="sq-rect" style="width:${Math.max(sideA,30)}px;height:${Math.max(sideA,30)}px;background:rgba(232,72,85,0.2);border:2px solid #e84855;color:#e84855;">
+      <div class="sq-rect" style="width:${Math.max(sideA,30)}px;height:${Math.max(sideA,30)}px;background:rgba(217,63,76,0.10);border:2px solid #d93f4c;color:#d93f4c;">
         ${sqA.toFixed(3)}
       </div>
-      <div class="sq-desc">p<sub>A</sub>² = ${sqA.toFixed(3)}<br>${pa.toFixed(2)}² </div>
+      <div class="sq-desc">p<sub>A</sub>² = ${sqA.toFixed(3)}<br>${pa.toFixed(2)}²</div>
     </div>
     <div class="sq-op">+</div>
     <div class="sq-box">
-      <div class="sq-rect" style="width:${Math.max(sideB,30)}px;height:${Math.max(sideB,30)}px;background:rgba(61,142,240,0.2);border:2px solid #3d8ef0;color:#3d8ef0;">
+      <div class="sq-rect" style="width:${Math.max(sideB,30)}px;height:${Math.max(sideB,30)}px;background:rgba(40,120,224,0.10);border:2px solid #2878e0;color:#2878e0;">
         ${sqB.toFixed(3)}
       </div>
-      <div class="sq-desc">p<sub>B</sub>² = ${sqB.toFixed(3)}<br>${pb.toFixed(2)}² </div>
+      <div class="sq-desc">p<sub>B</sub>² = ${sqB.toFixed(3)}<br>${pb.toFixed(2)}²</div>
     </div>
     <div class="sq-op">=</div>
     <div class="sq-box">
-      <div class="sq-rect" style="width:${Math.max(sideSum,30)}px;height:${Math.max(sideSum,30)}px;background:rgba(46,196,169,0.15);border:2px solid #2ec4a9;color:#2ec4a9;">
+      <div class="sq-rect" style="width:${Math.max(sideSum,30)}px;height:${Math.max(sideSum,30)}px;background:rgba(15,168,132,0.10);border:2px solid #0fa884;color:#0fa884;">
         ${sumSq.toFixed(3)}
       </div>
-      <div class="sq-desc">합 = ${sumSq.toFixed(3)}<br>1 − 합 = <strong style="color:#2ec4a9;">${gini.toFixed(3)}</strong></div>
+      <div class="sq-desc">합 = ${sumSq.toFixed(3)}<br>1 − 합 = <strong style="color:#0fa884;">${gini.toFixed(3)}</strong></div>
     </div>
   `;
 
