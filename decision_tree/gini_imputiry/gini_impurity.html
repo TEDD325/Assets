@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>지니 불순도 시각화</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --bg2: #181c27;
+    --bg3: #1e2336;
+    --card: #1a1f2e;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #e8eaf2;
+    --text2: #8b90a7;
+    --text3: #555c78;
+    --red: #e84855;
+    --blue: #3d8ef0;
+    --teal: #2ec4a9;
+    --amber: #f5a623;
+    --red-dim: rgba(232,72,85,0.15);
+    --blue-dim: rgba(61,142,240,0.15);
+    --teal-dim: rgba(46,196,169,0.12);
+    --font: 'Noto Sans KR', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 60px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+    position: relative;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--teal);
+    background: var(--teal-dim);
+    border: 1px solid rgba(46,196,169,0.25);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-size: clamp(22px, 4vw, 32px);
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  h1 span { color: var(--red); }
+
+  .subtitle {
+    font-size: 14px;
+    color: var(--text2);
+    font-weight: 300;
+  }
+
+  .formula-banner {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 14px 24px;
+    margin-bottom: 32px;
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text);
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+
+  .formula-banner span.var { color: var(--teal); }
+  .formula-banner span.num { color: var(--amber); }
+
+  .main-grid {
+    width: 100%;
+    max-width: 860px;
+    display: grid;
+    gap: 20px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+  }
+
+  .card-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 14px;
+  }
+
+  /* SLIDER CARD */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .slider-info {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 16px;
+  }
+
+  .si-item { display: flex; flex-direction: column; gap: 2px; }
+  .si-label { font-size: 11px; color: var(--text3); letter-spacing: 0.05em; }
+  .si-val { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+  .si-val.red { color: var(--red); }
+  .si-val.blue { color: var(--blue); }
+  .si-val.gini { color: var(--teal); }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 5px;
+    background: var(--bg3);
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    border: 1px solid var(--border);
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--red);
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 2px var(--red);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
+
+  .track-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 6px;
+    font-family: var(--mono);
+  }
+
+  /* BASKET */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  #basket {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 14px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    min-height: 80px;
+    align-content: flex-start;
+  }
+
+  .fruit {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: transform 0.2s;
+  }
+
+  .fruit:hover { transform: scale(1.2); }
+
+  /* SQUARES */
+  .squares-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 0;
+  }
+
+  .sq-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sq-rect {
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .sq-desc {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--mono);
+    text-align: center;
+  }
+
+  .sq-op {
+    font-size: 22px;
+    color: var(--text3);
+    font-weight: 300;
+    align-self: center;
+    margin-bottom: 18px;
+  }
+
+  /* FORMULA LIVE */
+  .formula-live {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    color: var(--text2);
+    line-height: 1.9;
+    margin-top: 16px;
+  }
+
+  .formula-live .hl-r { color: var(--red); font-weight: 600; }
+  .formula-live .hl-b { color: var(--blue); font-weight: 600; }
+  .formula-live .hl-t { color: var(--teal); font-weight: 700; }
+
+  /* STATE BADGE */
+  .state-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: 12px;
+    transition: all 0.3s;
+  }
+
+  .badge-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
+  /* CHART */
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 240px;
+  }
+
+  /* INSIGHT */
+  .insight-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .insight-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    transition: border-color 0.3s;
+  }
+
+  .insight-card.active { border-color: var(--teal); background: rgba(46,196,169,0.06); }
+
+  .ic-value {
+    font-size: 22px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .ic-label { font-size: 11px; color: var(--text3); }
+  .ic-desc { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+  footer {
+    margin-top: 48px;
+    font-size: 12px;
+    color: var(--text3);
+    text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    .two-col { grid-template-columns: 1fr; }
+    .insight-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">결정트리 강의 교안 2-3</div>
+  <h1>지니 <span>불순도</span>란 무엇인가?</h1>
+  <p class="subtitle">비율을 제곱하여 빼는 이유를 직접 확인해보세요</p>
+</header>
+
+<div class="formula-banner">
+  Gini &nbsp;=&nbsp; 1 &minus; &sum; <span class="var">p</span><sub>i</sub><sup>2</sup>
+  &nbsp;&nbsp;&nbsp;
+  <span style="color:var(--text3)">|</span>
+  &nbsp;&nbsp;&nbsp;
+  p<sub>A</sub> = <span class="num" id="fb-pa">0.60</span>,
+  p<sub>B</sub> = <span class="num" id="fb-pb">0.40</span>
+  &nbsp;&rarr;&nbsp;
+  Gini = <span class="var" id="fb-gini">0.480</span>
+</div>
+
+<div class="main-grid">
+
+  <!-- SLIDER -->
+  <div class="card">
+    <div class="card-label">클래스 비율 조절</div>
+    <div class="slider-info">
+      <div class="si-item">
+        <span class="si-label">사과 (클래스 A)</span>
+        <span class="si-val red" id="val-a">60%</span>
+      </div>
+      <div class="si-item">
+        <span class="si-label">오렌지 (클래스 B)</span>
+        <span class="si-val blue" id="val-b">40%</span>
+      </div>
+      <div class="si-item">
+        <span class="si-label">
+          지니 불순도
+          <span class="state-badge" id="state-badge">
+            <span class="badge-dot" id="badge-dot"></span>
+            <span id="badge-text">혼합</span>
+          </span>
+        </span>
+        <span class="si-val gini" id="val-gini">0.480</span>
+      </div>
+    </div>
+    <input type="range" min="0" max="100" value="60" id="slider" oninput="update(this.value)">
+    <div class="track-labels">
+      <span>0% (오렌지만)</span>
+      <span>50% (반반)</span>
+      <span>100% (사과만)</span>
+    </div>
+  </div>
+
+  <!-- BASKET + SQUARES -->
+  <div class="two-col">
+    <div class="card">
+      <div class="card-label">바구니 구성 (10개 기준)</div>
+      <div id="basket"></div>
+    </div>
+    <div class="card">
+      <div class="card-label">p² 계산 — 제곱의 효과</div>
+      <div class="squares-row" id="squares-row"></div>
+    </div>
+  </div>
+
+  <!-- FORMULA LIVE -->
+  <div class="card">
+    <div class="card-label">단계별 계산 과정</div>
+    <div class="formula-live" id="formula-live"></div>
+  </div>
+
+  <!-- CHART -->
+  <div class="card">
+    <div class="card-label">지니 불순도 곡선 — 전체 범위</div>
+    <div class="chart-wrap">
+      <canvas id="giniChart" role="img" aria-label="사과 비율 0~100%에 따른 지니 불순도 변화 곡선. 50%에서 최대 0.5, 양 끝에서 0.">
+        사과 비율에 따른 지니 불순도 변화 곡선.
+      </canvas>
+    </div>
+
+    <div class="insight-grid">
+      <div class="insight-card" id="ic-pure">
+        <div class="ic-value" style="color:var(--teal)">0.0</div>
+        <div class="ic-label">완전 순수</div>
+        <div class="ic-desc">한 클래스만 존재 → 제곱합이 1이 되어 Gini = 0</div>
+      </div>
+      <div class="insight-card" id="ic-max">
+        <div class="ic-value" style="color:var(--red)">0.5</div>
+        <div class="ic-label">최대 불순도</div>
+        <div class="ic-desc">정확히 반반 → 제곱합이 최소(0.5), Gini = 0.5</div>
+      </div>
+      <div class="insight-card" id="ic-cur">
+        <div class="ic-value" id="ic-cur-val" style="color:var(--amber)">0.48</div>
+        <div class="ic-label">현재 값</div>
+        <div class="ic-desc" id="ic-cur-desc">슬라이더를 움직여 변화를 확인하세요</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>결정트리 강의 교안 2-3 · 지니 불순도 인터랙티브 시각화</footer>
+
+<script>
+let chart;
+
+const labels = Array.from({length: 101}, (_, i) => i);
+const giniData = labels.map(p => {
+  const pa = p / 100, pb = 1 - pa;
+  return parseFloat((1 - (pa*pa + pb*pb)).toFixed(4));
+});
+
+function initChart() {
+  const ctx = document.getElementById('giniChart');
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '지니 불순도',
+          data: giniData,
+          borderColor: '#e84855',
+          backgroundColor: 'rgba(232,72,85,0.07)',
+          fill: true,
+          pointRadius: 0,
+          borderWidth: 2.5,
+          tension: 0.4
+        },
+        {
+          label: '현재 위치',
+          data: [],
+          borderColor: '#2ec4a9',
+          borderWidth: 0,
+          pointRadius: 8,
+          pointBackgroundColor: '#2ec4a9',
+          pointBorderColor: '#0f1117',
+          pointBorderWidth: 3,
+          showLine: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 0 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1e2336',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#8b90a7',
+          bodyColor: '#e8eaf2',
+          callbacks: {
+            title: items => `사과 비율: ${items[0].label}%`,
+            label: item => ` Gini = ${parseFloat(item.formattedValue).toFixed(3)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: '사과 비율 (%)', color: '#555c78', font: { size: 11 } },
+          ticks: {
+            color: '#555c78', font: { size: 10 },
+            callback: v => v % 25 === 0 ? v + '%' : '',
+            autoSkip: false, maxRotation: 0
+          },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          border: { color: 'rgba(255,255,255,0.08)' }
+        },
+        y: {
+          min: 0, max: 0.56,
+          title: { display: true, text: '지니 불순도', color: '#555c78', font: { size: 11 } },
+          ticks: { color: '#555c78', font: { size: 10 }, callback: v => v.toFixed(1) },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          border: { color: 'rgba(255,255,255,0.08)' }
+        }
+      }
+    }
+  });
+}
+
+function update(val) {
+  const p = parseInt(val);
+  const pa = p / 100, pb = 1 - pa;
+  const sqA = parseFloat((pa * pa).toFixed(4));
+  const sqB = parseFloat((pb * pb).toFixed(4));
+  const sumSq = parseFloat((sqA + sqB).toFixed(4));
+  const gini = parseFloat((1 - sumSq).toFixed(4));
+
+  document.getElementById('val-a').textContent = p + '%';
+  document.getElementById('val-b').textContent = (100 - p) + '%';
+  document.getElementById('val-gini').textContent = gini.toFixed(3);
+  document.getElementById('fb-pa').textContent = pa.toFixed(2);
+  document.getElementById('fb-pb').textContent = pb.toFixed(2);
+  document.getElementById('fb-gini').textContent = gini.toFixed(3);
+  document.getElementById('ic-cur-val').textContent = gini.toFixed(3);
+
+  // State badge
+  const badge = document.getElementById('state-badge');
+  const dot = document.getElementById('badge-dot');
+  const badgeText = document.getElementById('badge-text');
+  if (p === 0 || p === 100) {
+    badge.style.background = 'rgba(46,196,169,0.15)';
+    badge.style.color = '#2ec4a9';
+    dot.style.background = '#2ec4a9';
+    badgeText.textContent = '완전 순수';
+    document.getElementById('ic-cur-desc').textContent = '한 클래스만 존재 → 완전히 순수한 노드';
+  } else if (p >= 45 && p <= 55) {
+    badge.style.background = 'rgba(232,72,85,0.15)';
+    badge.style.color = '#e84855';
+    dot.style.background = '#e84855';
+    badgeText.textContent = '최대 불순도';
+    document.getElementById('ic-cur-desc').textContent = '정확히 반반에 가까울수록 불순도 최대';
+  } else {
+    badge.style.background = 'rgba(245,166,35,0.12)';
+    badge.style.color = '#f5a623';
+    dot.style.background = '#f5a623';
+    badgeText.textContent = '혼합';
+    document.getElementById('ic-cur-desc').textContent = '슬라이더를 움직여 변화를 확인하세요';
+  }
+
+  // Basket
+  const basket = document.getElementById('basket');
+  basket.innerHTML = '';
+  const total = 10;
+  const apples = Math.round(p / 10);
+  for (let i = 0; i < total; i++) {
+    const f = document.createElement('div');
+    f.className = 'fruit';
+    f.style.background = i < apples ? 'rgba(232,72,85,0.2)' : 'rgba(61,142,240,0.2)';
+    f.style.border = `1.5px solid ${i < apples ? '#e84855' : '#3d8ef0'}`;
+    f.textContent = i < apples ? '🍎' : '🍊';
+    basket.appendChild(f);
+  }
+
+  // Squares
+  const maxSide = 64;
+  const sideA = Math.round(maxSide * Math.sqrt(sqA / 0.25));
+  const sideB = Math.round(maxSide * Math.sqrt(sqB / 0.25));
+  const sideSum = Math.round(maxSide * Math.sqrt(sumSq / 0.5));
+  document.getElementById('squares-row').innerHTML = `
+    <div class="sq-box">
+      <div class="sq-rect" style="width:${Math.max(sideA,30)}px;height:${Math.max(sideA,30)}px;background:rgba(232,72,85,0.2);border:2px solid #e84855;color:#e84855;">
+        ${sqA.toFixed(3)}
+      </div>
+      <div class="sq-desc">p<sub>A</sub>² = ${sqA.toFixed(3)}<br>${pa.toFixed(2)}² </div>
+    </div>
+    <div class="sq-op">+</div>
+    <div class="sq-box">
+      <div class="sq-rect" style="width:${Math.max(sideB,30)}px;height:${Math.max(sideB,30)}px;background:rgba(61,142,240,0.2);border:2px solid #3d8ef0;color:#3d8ef0;">
+        ${sqB.toFixed(3)}
+      </div>
+      <div class="sq-desc">p<sub>B</sub>² = ${sqB.toFixed(3)}<br>${pb.toFixed(2)}² </div>
+    </div>
+    <div class="sq-op">=</div>
+    <div class="sq-box">
+      <div class="sq-rect" style="width:${Math.max(sideSum,30)}px;height:${Math.max(sideSum,30)}px;background:rgba(46,196,169,0.15);border:2px solid #2ec4a9;color:#2ec4a9;">
+        ${sumSq.toFixed(3)}
+      </div>
+      <div class="sq-desc">합 = ${sumSq.toFixed(3)}<br>1 − 합 = <strong style="color:#2ec4a9;">${gini.toFixed(3)}</strong></div>
+    </div>
+  `;
+
+  // Formula
+  document.getElementById('formula-live').innerHTML = `
+    Gini &nbsp;= 1 &minus; ( p<sub>A</sub>² + p<sub>B</sub>² )<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 1 &minus; ( <span class="hl-r">${pa.toFixed(2)}</span>² + <span class="hl-b">${pb.toFixed(2)}</span>² )<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 1 &minus; ( <span class="hl-r">${sqA.toFixed(4)}</span> + <span class="hl-b">${sqB.toFixed(4)}</span> )<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 1 &minus; ${sumSq.toFixed(4)}<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span class="hl-t">${gini.toFixed(4)}</span>
+  `;
+
+  // Chart dot
+  if (chart) {
+    chart.data.datasets[1].data = [{ x: p, y: gini }];
+    chart.update('none');
+  }
+}
+
+initChart();
+update(60);
+</script>
+</body>
+</html>
