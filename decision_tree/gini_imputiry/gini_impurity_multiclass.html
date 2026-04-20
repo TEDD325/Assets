@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다중 클래스 지니 불순도 시각화</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #f5f6f8;
+    --bg2:     #eef0f3;
+    --bg3:     #e6e8ed;
+    --card:    #ffffff;
+    --border:  rgba(0,0,0,0.08);
+    --border2: rgba(0,0,0,0.14);
+    --text:    #1a1d24;
+    --text2:   #5a5f72;
+    --text3:   #9096a8;
+    --red:     #d93f4c;
+    --blue:    #2878e0;
+    --teal:    #0fa884;
+    --amber:   #c97d10;
+    --font:    'Noto Sans KR', sans-serif;
+    --mono:    'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 36px 20px 56px;
+  }
+
+  .formula-banner {
+    width: 100%;
+    max-width: 860px;
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 14px 24px;
+    margin-bottom: 24px;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text);
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+
+  .formula-banner .var  { color: var(--teal); }
+  .formula-banner .note { color: var(--text3); font-size: 11px; margin-top: 4px; display: block; }
+
+  .main-grid {
+    width: 100%;
+    max-width: 860px;
+    display: grid;
+    gap: 18px;
+  }
+
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .metric {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+
+  .metric-label { font-size: 11px; color: var(--text3); letter-spacing: 0.04em; margin-bottom: 6px; }
+  .metric-val   { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+  .metric-val.red   { color: var(--red); }
+  .metric-val.teal  { color: var(--teal); }
+  .metric-val.amber { color: var(--amber); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 24px;
+  }
+
+  .card-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 16px;
+  }
+
+  .cls-tabs {
+    display: flex;
+    gap: 7px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .cls-tab {
+    padding: 5px 16px;
+    border: 1px solid var(--border2);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text2);
+    font-size: 13px;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .cls-tab:hover { background: var(--bg2); color: var(--text); }
+
+  .cls-tab.active {
+    background: rgba(217,63,76,0.09);
+    border-color: rgba(217,63,76,0.35);
+    color: var(--red);
+    font-weight: 500;
+  }
+
+  .cls-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 11px;
+  }
+
+  .cls-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+  .cls-name {
+    font-size: 13px;
+    color: var(--text2);
+    width: 60px;
+    flex-shrink: 0;
+  }
+
+  .cls-name .auto-badge {
+    font-size: 10px;
+    color: var(--text3);
+    margin-left: 3px;
+    font-style: italic;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    border: 1px solid var(--border);
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--red);
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1.5px var(--red);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
+
+  .auto-bar-wrap {
+    flex: 1;
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .auto-bar-inner { height: 100%; border-radius: 4px; transition: width 0.2s; }
+
+  .cls-pct {
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--mono);
+    width: 38px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .cls-psq {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--mono);
+    width: 56px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .stackbar {
+    display: flex;
+    height: 28px;
+    border-radius: 7px;
+    overflow: hidden;
+    gap: 2px;
+    margin-top: 16px;
+    margin-bottom: 14px;
+  }
+
+  .stackseg {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.95);
+    transition: width 0.2s;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .formula-live {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 13px 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 2;
+  }
+
+  .chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-swatch { width: 11px; height: 3px; border-radius: 2px; }
+  .legend-dash { width: 15px; border-top: 2px dashed #9096a8; }
+
+  .chart-wrap { position: relative; width: 100%; height: 230px; }
+
+  .chart-note {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text3);
+    text-align: center;
+    font-family: var(--mono);
+  }
+
+  @media (max-width: 600px) {
+    .metrics-row { grid-template-columns: 1fr 1fr; }
+    .cls-psq { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="formula-banner">
+  Gini &nbsp;=&nbsp; 1 &minus; &sum;<sub>i=1</sub><sup>C</sup> <span class="var">p</span><sub>i</sub><sup>2</sup>
+  &nbsp;&nbsp;&nbsp;
+  <span style="color:var(--text3)">|</span>
+  &nbsp;&nbsp;&nbsp;
+  Gini<sub>max</sub> &nbsp;=&nbsp; 1 &minus; <sup>1</sup>&frasl;<sub>C</sub> &nbsp;&nbsp;(균등 분포 시)
+  <span class="note">C = 클래스 수 &nbsp;·&nbsp; p<sub>i</sub> = 클래스 i의 비율</span>
+</div>
+
+<div class="main-grid">
+
+  <div class="metrics-row">
+    <div class="metric">
+      <div class="metric-label">현재 Gini 불순도</div>
+      <div class="metric-val red" id="cur-gini">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">이론적 최댓값 (균등)</div>
+      <div class="metric-val teal" id="max-gini">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">최댓값 대비 비율</div>
+      <div class="metric-val amber" id="ratio-gini">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">클래스 수 선택 및 비율 조절</div>
+    <div class="cls-tabs" id="cls-tabs"></div>
+    <div id="sliders-wrap"></div>
+    <div class="stackbar" id="stackbar"></div>
+    <div class="formula-live" id="formula-live"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">클래스 수별 Gini 최댓값 비교</div>
+    <div class="chart-legend">
+      <span class="legend-item">
+        <span class="legend-swatch" style="background:#d93f4c;"></span>현재 클래스 수
+      </span>
+      <span class="legend-item">
+        <span class="legend-swatch" style="background:#2878e0;"></span>다른 클래스 수
+      </span>
+      <span class="legend-item">
+        <span class="legend-dash"></span>현재 Gini 값
+      </span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="barChart" role="img"
+        aria-label="선택한 클래스 수 범위 내 지니 불순도 최댓값 비교 막대 차트. 클래스 수가 많을수록 최댓값이 1에 가까워집니다.">
+        클래스 수에 따른 지니 불순도 최댓값 비교.
+      </canvas>
+    </div>
+    <p class="chart-note">균등 분포(모든 클래스 동일 비율)일 때의 이론적 최댓값: Gini_max = 1 − 1/C</p>
+  </div>
+
+</div>
+
+<script>
+const COLORS = ['#d93f4c','#2878e0','#0fa884','#c97d10','#7c5cbf','#e06b2a'];
+const LABELS = ['A','B','C','D','E','F'];
+const MAX_C  = 6;
+
+let numClasses = 2;
+let vals = [60, 40, 0, 0, 0, 0];
+let barChart = null;
+
+function giniOf(arr) {
+  return 1 - arr.reduce((s, p) => s + (p/100)*(p/100), 0);
+}
+
+function maxGini(c) {
+  return +(1 - 1/c).toFixed(4);
+}
+
+function initVals() {
+  const eq = Math.floor(100 / numClasses);
+  for (let i = 0; i < MAX_C; i++) vals[i] = i < numClasses ? eq : 0;
+  vals[0] += 100 - eq * numClasses;
+}
+
+function buildTabs() {
+  const wrap = document.getElementById('cls-tabs');
+  wrap.innerHTML = '';
+  for (let c = 2; c <= MAX_C; c++) {
+    const btn = document.createElement('button');
+    btn.className = 'cls-tab' + (c === numClasses ? ' active' : '');
+    btn.textContent = c + '클래스';
+    btn.onclick = () => {
+      numClasses = c;
+      initVals();
+      buildTabs();
+      buildSliders();
+      rebuildChart();
+      render();
+    };
+    wrap.appendChild(btn);
+  }
+}
+
+function buildSliders() {
+  const wrap = document.getElementById('sliders-wrap');
+  wrap.innerHTML = '';
+
+  for (let i = 0; i < numClasses - 1; i++) {
+    const row = document.createElement('div');
+    row.className = 'cls-row';
+    row.innerHTML = `
+      <span class="cls-dot" style="background:${COLORS[i]}"></span>
+      <span class="cls-name">클래스 ${LABELS[i]}</span>
+      <input type="range" min="0" max="100" step="1" value="${vals[i]}" data-idx="${i}" oninput="onSlide(this)">
+      <span class="cls-pct" id="pct-${i}" style="color:${COLORS[i]}">${vals[i]}%</span>
+      <span class="cls-psq" id="psq-${i}">(${((vals[i]/100)**2).toFixed(3)})</span>
+    `;
+    wrap.appendChild(row);
+  }
+
+  const li = numClasses - 1;
+  const lastRow = document.createElement('div');
+  lastRow.className = 'cls-row';
+  lastRow.innerHTML = `
+    <span class="cls-dot" style="background:${COLORS[li]};opacity:0.5"></span>
+    <span class="cls-name" style="color:var(--text3)">
+      클래스 ${LABELS[li]}<span class="auto-badge">자동</span>
+    </span>
+    <div class="auto-bar-wrap">
+      <div class="auto-bar-inner" id="auto-bar"
+           style="width:${vals[li]}%;background:${COLORS[li]};opacity:0.45"></div>
+    </div>
+    <span class="cls-pct" id="pct-last" style="color:var(--text3)">${vals[li]}%</span>
+    <span class="cls-psq" id="psq-last" style="color:var(--text3)">(${((vals[li]/100)**2).toFixed(3)})</span>
+  `;
+  wrap.appendChild(lastRow);
+}
+
+function onSlide(el) {
+  const idx = parseInt(el.dataset.idx);
+  vals[idx] = parseInt(el.value);
+  const used = vals.slice(0, numClasses - 1).reduce((a, b) => a + b, 0);
+  vals[numClasses - 1] = Math.max(0, 100 - used);
+  render();
+}
+
+function render() {
+  const used = vals.slice(0, numClasses - 1).reduce((a, b) => a + b, 0);
+  vals[numClasses - 1] = Math.max(0, 100 - used);
+  const active = vals.slice(0, numClasses);
+
+  const g  = giniOf(active);
+  const mg = maxGini(numClasses);
+  const ratio = mg > 0 ? Math.round((g / mg) * 100) : 0;
+
+  document.getElementById('cur-gini').textContent   = g.toFixed(3);
+  document.getElementById('max-gini').textContent   = mg.toFixed(3);
+  document.getElementById('ratio-gini').textContent = ratio + '%';
+
+  for (let i = 0; i < numClasses - 1; i++) {
+    const p    = vals[i];
+    const pEl  = document.getElementById('pct-' + i);
+    const sqEl = document.getElementById('psq-' + i);
+    if (pEl)  pEl.textContent  = p + '%';
+    if (sqEl) sqEl.textContent = '(' + ((p/100)**2).toFixed(3) + ')';
+  }
+
+  const last   = vals[numClasses - 1];
+  const pLast  = document.getElementById('pct-last');
+  const sqLast = document.getElementById('psq-last');
+  const aBar   = document.getElementById('auto-bar');
+  if (pLast)  pLast.textContent  = last + '%';
+  if (sqLast) sqLast.textContent = '(' + ((last/100)**2).toFixed(3) + ')';
+  if (aBar)   aBar.style.width   = last + '%';
+
+  const stack = document.getElementById('stackbar');
+  stack.innerHTML = '';
+  active.forEach((v, i) => {
+    if (v <= 0) return;
+    const seg = document.createElement('div');
+    seg.className = 'stackseg';
+    seg.style.width = v + '%';
+    seg.style.background = COLORS[i];
+    seg.textContent = v >= 7 ? LABELS[i] : '';
+    stack.appendChild(seg);
+  });
+
+  const terms   = active.map((v, i) =>
+    `<span style="color:${COLORS[i]};font-weight:600">${(v/100).toFixed(2)}²</span>`).join(' + ');
+  const sqTerms = active.map((v, i) =>
+    `<span style="color:${COLORS[i]};font-weight:600">${((v/100)**2).toFixed(4)}</span>`).join(' + ');
+  const sumSq   = active.reduce((s, v) => s + (v/100)**2, 0);
+
+  document.getElementById('formula-live').innerHTML =
+    `Gini = 1 − ( ${terms} )<br>` +
+    `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 1 − ( ${sqTerms} )<br>` +
+    `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 1 − ${sumSq.toFixed(4)}<br>` +
+    `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span style="color:#d93f4c;font-weight:600">${g.toFixed(4)}</span>` +
+    `&nbsp;&nbsp;<span style="font-size:11px;color:var(--text3)">` +
+    `(이론적 최댓값 ${mg.toFixed(3)}의 ${ratio}%)</span>`;
+
+  updateChart(g);
+}
+
+function rebuildChart() {
+  if (barChart) { barChart.destroy(); barChart = null; }
+  buildChart();
+}
+
+function buildChart() {
+  const cs       = Array.from({length: numClasses - 1}, (_, i) => i + 2);
+  const maxVals  = cs.map(c => maxGini(c));
+  const curG     = giniOf(vals.slice(0, numClasses));
+  const bgColors = cs.map(c => c === numClasses ? '#d93f4c' : '#2878e0');
+
+  barChart = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: cs.map(c => c + '개'),
+      datasets: [
+        {
+          label: '최댓값 (균등 분포)',
+          data: maxVals,
+          backgroundColor: bgColors,
+          borderRadius: 5,
+          borderSkipped: false,
+        },
+        {
+          label: '현재 Gini',
+          data: cs.map(() => curG),
+          type: 'line',
+          borderColor: '#9096a8',
+          borderDash: [6, 4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+          order: 0,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 0 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#ffffff',
+          borderColor: 'rgba(0,0,0,0.12)',
+          borderWidth: 1,
+          titleColor: '#5a5f72',
+          bodyColor:  '#1a1d24',
+          callbacks: {
+            title: items => `클래스 수: ${items[0].label}`,
+            label: item => item.datasetIndex === 0
+              ? ` 최댓값 = ${parseFloat(item.formattedValue).toFixed(3)}`
+              : ` 현재 Gini = ${parseFloat(item.formattedValue).toFixed(3)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: '클래스 수 (C)', color: '#9096a8', font: { size: 11 } },
+          ticks: { color: '#9096a8', font: { size: 11 } },
+          grid:  { color: 'rgba(0,0,0,0.05)' },
+          border: { color: 'rgba(0,0,0,0.09)' }
+        },
+        y: {
+          min: 0, max: 1.05,
+          title: { display: true, text: '지니 불순도', color: '#9096a8', font: { size: 11 } },
+          ticks: { color: '#9096a8', font: { size: 11 }, callback: v => v.toFixed(1) },
+          grid:  { color: 'rgba(0,0,0,0.05)' },
+          border: { color: 'rgba(0,0,0,0.09)' }
+        }
+      }
+    }
+  });
+}
+
+function updateChart(curGini) {
+  if (!barChart) return;
+  const cs = Array.from({length: numClasses - 1}, (_, i) => i + 2);
+  barChart.data.labels = cs.map(c => c + '개');
+  barChart.data.datasets[0].data = cs.map(c => maxGini(c));
+  barChart.data.datasets[0].backgroundColor = cs.map(c => c === numClasses ? '#d93f4c' : '#2878e0');
+  barChart.data.datasets[1].data = cs.map(() => curGini);
+  barChart.update('none');
+}
+
+initVals();
+buildTabs();
+buildSliders();
+buildChart();
+render();
+</script>
+</body>
+</html>
