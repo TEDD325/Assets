@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>결정트리 깊이에 따른 편향-분산</title>
+<style>
+  :root {
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --surface-2: #f1efe8;
+    --text-primary: #2c2c2a;
+    --text-secondary: #5f5e5a;
+    --text-tertiary: #888780;
+    --border: rgba(0, 0, 0, 0.1);
+    --accent: #534AB7;
+    --bias-color: #B84A2E;
+    --variance-color: #1D9E75;
+    --total-color: #534AB7;
+    --target-ring: rgba(0, 0, 0, 0.12);
+    --target-center: #E8D9B8;
+    --underfit-bg: rgba(184, 74, 46, 0.06);
+    --overfit-bg: rgba(29, 158, 117, 0.06);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --surface: #26262380;
+      --surface-2: #2c2c2a;
+      --text-primary: #e8e6de;
+      --text-secondary: #b4b2a9;
+      --text-tertiary: #888780;
+      --border: rgba(255, 255, 255, 0.1);
+      --target-ring: rgba(255, 255, 255, 0.15);
+      --target-center: #8B7849;
+      --underfit-bg: rgba(184, 74, 46, 0.12);
+      --overfit-bg: rgba(29, 158, 117, 0.1);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1rem;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Apple SD Gothic Neo", sans-serif;
+    line-height: 1.6;
+  }
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 2rem;
+    padding: 0 1rem;
+  }
+  .controls label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    min-width: 80px;
+  }
+  .controls input[type="range"] {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--surface-2);
+    border-radius: 2px;
+    outline: none;
+  }
+  .controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+  .controls input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+  .depth-out {
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 20px;
+    text-align: right;
+    color: var(--text-primary);
+  }
+  .target-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 0 0 2rem;
+  }
+  .target-cell {
+    text-align: center;
+    padding: 12px 8px;
+    border-radius: var(--radius-md);
+    transition: background 0.3s ease;
+  }
+  .target-cell.active {
+    background: var(--surface-2);
+  }
+  .target-cell h3 {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 0 8px;
+  }
+  .target-cell.active h3 {
+    color: var(--text-primary);
+  }
+  .target-cell svg {
+    width: 100%;
+    max-width: 160px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  .target-cell .caption {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .chart-section {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 1.5rem 1rem;
+    margin: 0 0 1rem;
+  }
+  .chart-title {
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-align: center;
+    margin: 0 0 1rem;
+  }
+  .chart-wrapper {
+    position: relative;
+    width: 100%;
+  }
+  .chart-wrapper svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-line {
+    width: 20px;
+    height: 2px;
+  }
+  .legend-dashed {
+    background: repeating-linear-gradient(90deg, var(--total-color) 0 4px, transparent 4px 7px);
+  }
+  @media (max-width: 640px) {
+    .target-row { grid-template-columns: repeat(2, 1fr); }
+    .controls label { min-width: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="controls">
+    <label>Tree depth</label>
+    <input type="range" min="1" max="12" value="5" step="1" id="depth">
+    <span class="depth-out" id="depth-out">5</span>
+  </div>
+
+  <div class="target-row">
+    <div class="target-cell" id="cell-ideal">
+      <h3>이상적 모델</h3>
+      <svg viewBox="0 0 160 160" id="target-ideal"></svg>
+      <p class="caption">Low bias<br>Low variance</p>
+    </div>
+    <div class="target-cell" id="cell-underfit">
+      <h3>Underfitting</h3>
+      <svg viewBox="0 0 160 160" id="target-underfit"></svg>
+      <p class="caption">High bias<br>Low variance</p>
+    </div>
+    <div class="target-cell" id="cell-overfit">
+      <h3>단일 결정트리</h3>
+      <svg viewBox="0 0 160 160" id="target-overfit"></svg>
+      <p class="caption">Low bias<br>High variance</p>
+    </div>
+    <div class="target-cell" id="cell-worst">
+      <h3>최악의 모델</h3>
+      <svg viewBox="0 0 160 160" id="target-worst"></svg>
+      <p class="caption">High bias<br>High variance</p>
+    </div>
+  </div>
+
+  <div class="chart-section">
+    <p class="chart-title">결정트리 깊이에 따른 편향 vs 분산</p>
+    <div class="chart-wrapper">
+      <svg viewBox="0 0 780 380" id="chart"></svg>
+    </div>
+    <div class="chart-legend">
+      <div class="legend-item"><span class="legend-line" style="background: var(--bias-color);"></span>편향 (bias)</div>
+      <div class="legend-item"><span class="legend-line" style="background: var(--variance-color);"></span>분산 (variance)</div>
+      <div class="legend-item"><span class="legend-line legend-dashed"></span>총 오차</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  function mulberry32(a) {
+    return function() {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = a;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function drawTarget(svgId, config) {
+    var svg = document.getElementById(svgId);
+    var ns = 'http://www.w3.org/2000/svg';
+    svg.innerHTML = '';
+    var cx = 80, cy = 80;
+
+    [55, 38, 22].forEach(function(r) {
+      var circle = document.createElementNS(ns, 'circle');
+      circle.setAttribute('cx', cx);
+      circle.setAttribute('cy', cy);
+      circle.setAttribute('r', r);
+      circle.setAttribute('fill', 'none');
+      circle.setAttribute('stroke', 'var(--target-ring)');
+      circle.setAttribute('stroke-width', '0.8');
+      svg.appendChild(circle);
+    });
+
+    var center = document.createElementNS(ns, 'circle');
+    center.setAttribute('cx', cx);
+    center.setAttribute('cy', cy);
+    center.setAttribute('r', '5');
+    center.setAttribute('fill', 'var(--target-center)');
+    svg.appendChild(center);
+
+    var rnd = mulberry32(config.seed);
+    var n = 7;
+    var clusterX = cx + config.biasX;
+    var clusterY = cy + config.biasY;
+
+    var points = [];
+    var angleOffset = rnd() * Math.PI * 2;
+    for (var i = 0; i < n; i++) {
+      var angle = angleOffset + (i / n) * Math.PI * 2 + (rnd() - 0.5) * 0.6;
+      var radiusVariation = 0.7 + rnd() * 0.45;
+      var r = config.spread * radiusVariation;
+      var px = clusterX + Math.cos(angle) * r;
+      var py = clusterY + Math.sin(angle) * r;
+      points.push({ x: px, y: py });
+    }
+
+    var meanX = 0, meanY = 0;
+    for (var i = 0; i < n; i++) {
+      meanX += points[i].x;
+      meanY += points[i].y;
+    }
+    meanX /= n;
+    meanY /= n;
+
+    var meanCircle = document.createElementNS(ns, 'circle');
+    meanCircle.setAttribute('cx', meanX);
+    meanCircle.setAttribute('cy', meanY);
+    meanCircle.setAttribute('r', '7');
+    meanCircle.setAttribute('fill', 'none');
+    meanCircle.setAttribute('stroke', config.color);
+    meanCircle.setAttribute('stroke-width', '1.3');
+    meanCircle.setAttribute('stroke-dasharray', '3 2');
+    meanCircle.setAttribute('opacity', '0.7');
+    svg.appendChild(meanCircle);
+
+    for (var i = 0; i < n; i++) {
+      var dot = document.createElementNS(ns, 'circle');
+      dot.setAttribute('cx', points[i].x);
+      dot.setAttribute('cy', points[i].y);
+      dot.setAttribute('r', '4.5');
+      dot.setAttribute('fill', config.color);
+      dot.setAttribute('opacity', '0.85');
+      svg.appendChild(dot);
+    }
+  }
+
+  drawTarget('target-ideal',    { biasX: 0,   biasY: 0,   spread: 5,  color: '#3A7BD5', seed: 11 });
+  drawTarget('target-underfit', { biasX: 0,   biasY: -26, spread: 5,  color: '#B84A2E', seed: 22 });
+  drawTarget('target-overfit',  { biasX: 0,   biasY: 0,   spread: 32, color: '#1D9E75', seed: 7  });
+  drawTarget('target-worst',    { biasX: 18,  biasY: -14, spread: 28, color: '#B84A2E', seed: 44 });
+
+  function highlightCell(depth) {
+    ['cell-ideal', 'cell-underfit', 'cell-overfit', 'cell-worst'].forEach(function(id) {
+      document.getElementById(id).classList.remove('active');
+    });
+    if (depth <= 2) document.getElementById('cell-underfit').classList.add('active');
+    else if (depth <= 6) document.getElementById('cell-ideal').classList.add('active');
+    else if (depth <= 10) document.getElementById('cell-overfit').classList.add('active');
+    else document.getElementById('cell-worst').classList.add('active');
+  }
+
+  function computeMetrics(d) {
+    var bias = 0.85 * Math.exp(-0.45 * (d - 1)) + 0.08;
+    var variance = 0.08 + 0.78 / (1 + Math.exp(-0.9 * (d - 6.5)));
+    var total = bias + variance + 0.05;
+    return { bias: bias, variance: variance, total: total };
+  }
+
+  function drawChart(currentDepth) {
+    var svg = document.getElementById('chart');
+    var ns = 'http://www.w3.org/2000/svg';
+    svg.innerHTML = '';
+
+    var W = 780, H = 380;
+    var padL = 70, padR = 90, padT = 40, padB = 60;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+
+    var dMin = 1, dMax = 12;
+    var yMin = 0, yMax = 1.8;
+
+    function xScale(d) { return padL + ((d - dMin) / (dMax - dMin)) * plotW; }
+    function yScale(v) { return padT + plotH - (v / yMax) * plotH; }
+
+    var underfitEnd = xScale(3);
+    var overfitStart = xScale(8);
+
+    var underfitBg = document.createElementNS(ns, 'rect');
+    underfitBg.setAttribute('x', padL);
+    underfitBg.setAttribute('y', padT);
+    underfitBg.setAttribute('width', underfitEnd - padL);
+    underfitBg.setAttribute('height', plotH);
+    underfitBg.setAttribute('fill', 'var(--underfit-bg)');
+    svg.appendChild(underfitBg);
+
+    var overfitBg = document.createElementNS(ns, 'rect');
+    overfitBg.setAttribute('x', overfitStart);
+    overfitBg.setAttribute('y', padT);
+    overfitBg.setAttribute('width', W - padR - overfitStart);
+    overfitBg.setAttribute('height', plotH);
+    overfitBg.setAttribute('fill', 'var(--overfit-bg)');
+    svg.appendChild(overfitBg);
+
+    var optimalX = xScale(6.5);
+    var optLine = document.createElementNS(ns, 'line');
+    optLine.setAttribute('x1', optimalX);
+    optLine.setAttribute('y1', padT);
+    optLine.setAttribute('x2', optimalX);
+    optLine.setAttribute('y2', padT + plotH);
+    optLine.setAttribute('stroke', 'var(--text-tertiary)');
+    optLine.setAttribute('stroke-width', '1');
+    optLine.setAttribute('stroke-dasharray', '4 4');
+    optLine.setAttribute('opacity', '0.5');
+    svg.appendChild(optLine);
+
+    var optLabel = document.createElementNS(ns, 'text');
+    optLabel.setAttribute('x', optimalX);
+    optLabel.setAttribute('y', padT - 10);
+    optLabel.setAttribute('text-anchor', 'middle');
+    optLabel.setAttribute('fill', 'var(--text-secondary)');
+    optLabel.setAttribute('font-size', '12');
+    optLabel.textContent = '최적 깊이';
+    svg.appendChild(optLabel);
+
+    var xAxis = document.createElementNS(ns, 'line');
+    xAxis.setAttribute('x1', padL);
+    xAxis.setAttribute('y1', padT + plotH);
+    xAxis.setAttribute('x2', W - padR + 10);
+    xAxis.setAttribute('y2', padT + plotH);
+    xAxis.setAttribute('stroke', 'var(--text-secondary)');
+    xAxis.setAttribute('stroke-width', '1');
+    xAxis.setAttribute('marker-end', 'url(#arrowhead)');
+    svg.appendChild(xAxis);
+
+    var yAxis = document.createElementNS(ns, 'line');
+    yAxis.setAttribute('x1', padL);
+    yAxis.setAttribute('y1', padT + plotH);
+    yAxis.setAttribute('x2', padL);
+    yAxis.setAttribute('y2', padT - 10);
+    yAxis.setAttribute('stroke', 'var(--text-secondary)');
+    yAxis.setAttribute('stroke-width', '1');
+    yAxis.setAttribute('marker-end', 'url(#arrowhead)');
+    svg.appendChild(yAxis);
+
+    var defs = document.createElementNS(ns, 'defs');
+    defs.innerHTML = '<marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>';
+    svg.appendChild(defs);
+
+    var yLabel = document.createElementNS(ns, 'text');
+    yLabel.setAttribute('x', padL - 45);
+    yLabel.setAttribute('y', padT + plotH / 2);
+    yLabel.setAttribute('text-anchor', 'middle');
+    yLabel.setAttribute('fill', 'var(--text-secondary)');
+    yLabel.setAttribute('font-size', '13');
+    yLabel.textContent = '오차';
+    svg.appendChild(yLabel);
+
+    [
+      { x: xScale(1.5), label: '얕음' },
+      { x: xScale(6.5), label: '중간' },
+      { x: xScale(11.5), label: '깊음' }
+    ].forEach(function(t) {
+      var text = document.createElementNS(ns, 'text');
+      text.setAttribute('x', t.x);
+      text.setAttribute('y', padT + plotH + 22);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', 'var(--text-secondary)');
+      text.setAttribute('font-size', '12');
+      text.textContent = t.label;
+      svg.appendChild(text);
+    });
+
+    var xAxisLabel = document.createElementNS(ns, 'text');
+    xAxisLabel.setAttribute('x', padL + plotW / 2);
+    xAxisLabel.setAttribute('y', padT + plotH + 45);
+    xAxisLabel.setAttribute('text-anchor', 'middle');
+    xAxisLabel.setAttribute('fill', 'var(--text-secondary)');
+    xAxisLabel.setAttribute('font-size', '13');
+    xAxisLabel.textContent = '트리 깊이 (모델 복잡도)';
+    svg.appendChild(xAxisLabel);
+
+    var underfitLabel = document.createElementNS(ns, 'text');
+    underfitLabel.setAttribute('x', (padL + underfitEnd) / 2);
+    underfitLabel.setAttribute('y', padT + 30);
+    underfitLabel.setAttribute('text-anchor', 'middle');
+    underfitLabel.setAttribute('fill', 'var(--text-secondary)');
+    underfitLabel.setAttribute('font-size', '12');
+    underfitLabel.innerHTML = '<tspan x="' + (padL + underfitEnd) / 2 + '">Underfitting</tspan><tspan x="' + (padL + underfitEnd) / 2 + '" dy="15">(High bias)</tspan>';
+    svg.appendChild(underfitLabel);
+
+    var overfitLabel = document.createElementNS(ns, 'text');
+    var ofX = (overfitStart + W - padR) / 2;
+    overfitLabel.setAttribute('x', ofX);
+    overfitLabel.setAttribute('y', padT + 30);
+    overfitLabel.setAttribute('text-anchor', 'middle');
+    overfitLabel.setAttribute('fill', 'var(--text-secondary)');
+    overfitLabel.setAttribute('font-size', '12');
+    overfitLabel.innerHTML = '<tspan x="' + ofX + '">Overfitting</tspan><tspan x="' + ofX + '" dy="15">(High variance)</tspan>';
+    svg.appendChild(overfitLabel);
+
+    function buildPath(valueFn) {
+      var points = [];
+      for (var d = dMin; d <= dMax; d += 0.1) {
+        points.push([xScale(d), yScale(valueFn(d))]);
+      }
+      return 'M ' + points.map(function(p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L ');
+    }
+
+    var biasPath = document.createElementNS(ns, 'path');
+    biasPath.setAttribute('d', buildPath(function(d) { return computeMetrics(d).bias; }));
+    biasPath.setAttribute('fill', 'none');
+    biasPath.setAttribute('stroke', 'var(--bias-color)');
+    biasPath.setAttribute('stroke-width', '2.5');
+    biasPath.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(biasPath);
+
+    var variancePath = document.createElementNS(ns, 'path');
+    variancePath.setAttribute('d', buildPath(function(d) { return computeMetrics(d).variance; }));
+    variancePath.setAttribute('fill', 'none');
+    variancePath.setAttribute('stroke', 'var(--variance-color)');
+    variancePath.setAttribute('stroke-width', '2.5');
+    variancePath.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(variancePath);
+
+    var totalPath = document.createElementNS(ns, 'path');
+    totalPath.setAttribute('d', buildPath(function(d) {
+      var m = computeMetrics(d);
+      return m.bias + m.variance + 0.05;
+    }));
+    totalPath.setAttribute('fill', 'none');
+    totalPath.setAttribute('stroke', 'var(--total-color)');
+    totalPath.setAttribute('stroke-width', '2.5');
+    totalPath.setAttribute('stroke-linecap', 'round');
+    totalPath.setAttribute('stroke-dasharray', '6 4');
+    svg.appendChild(totalPath);
+
+    var labelX = W - padR + 14;
+    var m12 = computeMetrics(12);
+
+    var biasEndLabel = document.createElementNS(ns, 'text');
+    biasEndLabel.setAttribute('x', labelX);
+    biasEndLabel.setAttribute('y', yScale(m12.bias) + 4);
+    biasEndLabel.setAttribute('fill', 'var(--bias-color)');
+    biasEndLabel.setAttribute('font-size', '12');
+    biasEndLabel.setAttribute('font-weight', '500');
+    biasEndLabel.textContent = '편향';
+    svg.appendChild(biasEndLabel);
+
+    var varEndLabel = document.createElementNS(ns, 'text');
+    varEndLabel.setAttribute('x', labelX);
+    varEndLabel.setAttribute('y', yScale(m12.variance) + 4);
+    varEndLabel.setAttribute('fill', 'var(--variance-color)');
+    varEndLabel.setAttribute('font-size', '12');
+    varEndLabel.setAttribute('font-weight', '500');
+    varEndLabel.textContent = '분산';
+    svg.appendChild(varEndLabel);
+
+    var totalEndLabel = document.createElementNS(ns, 'text');
+    totalEndLabel.setAttribute('x', labelX);
+    totalEndLabel.setAttribute('y', yScale(m12.total) + 4);
+    totalEndLabel.setAttribute('fill', 'var(--total-color)');
+    totalEndLabel.setAttribute('font-size', '12');
+    totalEndLabel.setAttribute('font-weight', '500');
+    totalEndLabel.textContent = '총 오차';
+    svg.appendChild(totalEndLabel);
+
+    var current = computeMetrics(currentDepth);
+    var cx = xScale(currentDepth);
+
+    var cursorLine = document.createElementNS(ns, 'line');
+    cursorLine.setAttribute('x1', cx);
+    cursorLine.setAttribute('y1', padT);
+    cursorLine.setAttribute('x2', cx);
+    cursorLine.setAttribute('y2', padT + plotH);
+    cursorLine.setAttribute('stroke', 'var(--accent)');
+    cursorLine.setAttribute('stroke-width', '1.5');
+    cursorLine.setAttribute('opacity', '0.4');
+    svg.appendChild(cursorLine);
+
+    [
+      { value: current.bias, color: 'var(--bias-color)' },
+      { value: current.variance, color: 'var(--variance-color)' },
+      { value: current.total, color: 'var(--total-color)' }
+    ].forEach(function(pt) {
+      var dot = document.createElementNS(ns, 'circle');
+      dot.setAttribute('cx', cx);
+      dot.setAttribute('cy', yScale(pt.value));
+      dot.setAttribute('r', '5');
+      dot.setAttribute('fill', pt.color);
+      dot.setAttribute('stroke', 'var(--bg)');
+      dot.setAttribute('stroke-width', '2');
+      svg.appendChild(dot);
+    });
+  }
+
+  var slider = document.getElementById('depth');
+  var out = document.getElementById('depth-out');
+
+  function update() {
+    var d = parseInt(slider.value, 10);
+    out.textContent = d;
+    highlightCell(d);
+    drawChart(d);
+  }
+
+  slider.addEventListener('input', update);
+  update();
+})();
+</script>
+</body>
+</html>
