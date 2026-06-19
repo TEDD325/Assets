@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고객 구매 데이터 — 카테고리별 주문 내역</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg2: #f7f6f3;
+    --bg3: #f0eeea;
+    --text: #1a1a18;
+    --text2: #6b6a65;
+    --text3: #9c9a92;
+    --border: rgba(0,0,0,0.10);
+    --border2: rgba(0,0,0,0.18);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --mono: 'Menlo', 'Consolas', monospace;
+  }
+
+  body {
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg2);
+    color: var(--text);
+    padding: 32px 24px;
+    min-height: 100vh;
+  }
+
+  header {
+    margin-bottom: 28px;
+  }
+
+  header h1 {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text2);
+  }
+
+  .summary-bar {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 24px;
+    background: var(--bg3);
+    border-radius: var(--radius);
+    padding: 2px;
+    border: 0.5px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 8px 6px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    transition: all .15s;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .tab.active {
+    background: var(--bg);
+    color: var(--text);
+    border: 0.5px solid var(--border);
+  }
+
+  .tab .tab-name { display: block; font-size: 12px; }
+  .tab .tab-count { display: block; font-size: 10px; color: var(--text3); margin-top: 1px; }
+  .tab.active .tab-count { color: var(--text2); }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .panel-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .panel-stats {
+    display: flex;
+    gap: 16px;
+  }
+
+  .pstat {
+    text-align: right;
+  }
+
+  .pstat-val {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    display: block;
+  }
+
+  .pstat-label {
+    font-size: 10px;
+    color: var(--text3);
+    display: block;
+  }
+
+  .table-wrap {
+    background: var(--bg);
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border);
+    overflow: hidden;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    table-layout: fixed;
+  }
+
+  thead tr {
+    background: var(--bg2);
+    border-bottom: 0.5px solid var(--border2);
+  }
+
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+
+  th.r { text-align: right; }
+
+  td {
+    padding: 10px 14px;
+    color: var(--text);
+    border-bottom: 0.5px solid var(--border);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tr:hover td { background: var(--bg2); }
+
+  td.r { text-align: right; }
+  td.c { text-align: center; }
+
+  .order-id {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .date-cell { color: var(--text2); font-size: 12px; }
+
+  .item-name { font-weight: 400; }
+
+  .price-cell { font-weight: 500; }
+
+  .status {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  .s-paid   { background: #eaf3de; color: #3b6d11; }
+  .s-ship   { background: #faeeda; color: #854f0b; }
+  .s-refund { background: #fcebeb; color: #a32d2d; }
+
+  .empty-state {
+    padding: 48px 0;
+    text-align: center;
+    color: var(--text3);
+    font-size: 13px;
+  }
+
+  /* Category color accents for active tab indicator stripe */
+  .panel-divider {
+    height: 3px;
+    border-radius: 2px;
+    margin-bottom: 14px;
+    transition: background .2s;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 16px 12px; }
+    .tab .tab-name { font-size: 11px; }
+    .panel-stats { gap: 10px; }
+    .pstat-val { font-size: 14px; }
+    th, td { padding: 8px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>카테고리별 주문 내역</h1>
+  <p>2024년 1월 · 전체 12건</p>
+</header>
+
+<div class="summary-bar" id="tab-bar"></div>
+
+<div class="panel-header">
+  <div class="panel-title">
+    <span class="cat-dot" id="panel-dot"></span>
+    <span id="panel-label">전체</span>
+  </div>
+  <div class="panel-stats">
+    <div class="pstat">
+      <span class="pstat-val" id="stat-count">—</span>
+      <span class="pstat-label">주문 수</span>
+    </div>
+    <div class="pstat">
+      <span class="pstat-val" id="stat-revenue">—</span>
+      <span class="pstat-label">소계</span>
+    </div>
+    <div class="pstat">
+      <span class="pstat-val" id="stat-avg">—</span>
+      <span class="pstat-label">평균 단가</span>
+    </div>
+  </div>
+</div>
+
+<div class="panel-divider" id="panel-divider"></div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:88px">주문 ID</th>
+        <th style="width:68px">날짜</th>
+        <th style="width:76px">고객명</th>
+        <th>상품명</th>
+        <th style="width:48px" class="c">수량</th>
+        <th style="width:90px" class="r">단가</th>
+        <th style="width:90px" class="r">합계</th>
+        <th style="width:72px" class="r">상태</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+</div>
+
+<script>
+const orders = [
+  {id:'ORD-001',date:'01-03',cust:'김민준',item:'무선 이어폰',     cat:'전자기기',qty:1,price:89000, status:'결제완료'},
+  {id:'ORD-002',date:'01-05',cust:'이서연',item:'그래놀라 500g',   cat:'식품',    qty:3,price:15900, status:'결제완료'},
+  {id:'ORD-003',date:'01-06',cust:'박지우',item:'린넨 셔츠',       cat:'패션',    qty:2,price:42000, status:'결제완료'},
+  {id:'ORD-004',date:'01-08',cust:'최현우',item:'에센스 세럼',     cat:'뷰티',    qty:1,price:67000, status:'결제완료'},
+  {id:'ORD-005',date:'01-10',cust:'김민준',item:'스마트 스피커',   cat:'전자기기',qty:1,price:149000,status:'결제완료'},
+  {id:'ORD-006',date:'01-11',cust:'정수아',item:'올리브오일 1L',   cat:'식품',    qty:2,price:18500, status:'결제완료'},
+  {id:'ORD-007',date:'01-13',cust:'이서연',item:'캔들 세트',       cat:'홈/리빙', qty:1,price:32000, status:'환불'},
+  {id:'ORD-008',date:'01-14',cust:'한도윤',item:'운동화',          cat:'패션',    qty:1,price:95000, status:'결제완료'},
+  {id:'ORD-009',date:'01-16',cust:'박지우',item:'핸드크림',        cat:'뷰티',    qty:2,price:13500, status:'결제완료'},
+  {id:'ORD-010',date:'01-18',cust:'최현우',item:'블루투스 키보드', cat:'전자기기',qty:1,price:75000, status:'결제완료'},
+  {id:'ORD-011',date:'01-20',cust:'정수아',item:'아로마 디퓨저',   cat:'홈/리빙', qty:1,price:45000, status:'배송중'},
+  {id:'ORD-012',date:'01-22',cust:'김민준',item:'단백질 바 12개', cat:'식품',    qty:1,price:28000, status:'배송중'},
+];
+
+const cats = [
+  { key:'전체',    color:'#888780' },
+  { key:'전자기기',color:'#378ADD' },
+  { key:'식품',    color:'#639922' },
+  { key:'패션',    color:'#D4537E' },
+  { key:'뷰티',    color:'#7F77DD' },
+  { key:'홈/리빙', color:'#BA7517' },
+];
+
+const statusInfo = {
+  '결제완료': { cls:'s-paid',   label:'결제완료' },
+  '배송중':   { cls:'s-ship',   label:'배송중'   },
+  '환불':     { cls:'s-refund', label:'환불'      },
+};
+
+let current = '전체';
+
+function fmt(n){ return '₩' + n.toLocaleString('ko-KR'); }
+
+function filteredOrders(cat){
+  return cat === '전체' ? orders : orders.filter(o => o.cat === cat);
+}
+
+function renderTabs(){
+  const bar = document.getElementById('tab-bar');
+  bar.innerHTML = cats.map(c => {
+    const rows = filteredOrders(c.key);
+    const isActive = c.key === current;
+    return `<button class="tab${isActive?' active':''}" onclick="switchCat('${c.key}')">
+      <span class="tab-name">${c.key}</span>
+      <span class="tab-count">${rows.length}건</span>
+    </button>`;
+  }).join('');
+}
+
+function renderPanel(){
+  const rows = filteredOrders(current);
+  const catInfo = cats.find(c => c.key === current);
+  const paid = rows.filter(o => o.status !== '환불');
+  const revenue = paid.reduce((s,o)=>s+o.price*o.qty, 0);
+  const avg = paid.length ? Math.round(revenue / paid.length) : 0;
+
+  document.getElementById('panel-dot').style.background = catInfo.color;
+  document.getElementById('panel-label').textContent = current === '전체' ? '전체 주문' : current;
+  document.getElementById('panel-divider').style.background = catInfo.color;
+  document.getElementById('stat-count').textContent = rows.length + '건';
+  document.getElementById('stat-revenue').textContent = fmt(revenue);
+  document.getElementById('stat-avg').textContent = fmt(avg);
+
+  const tbody = document.getElementById('table-body');
+  if(rows.length === 0){
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state">해당 카테고리의 주문이 없습니다.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(o => {
+    const si = statusInfo[o.status] || {cls:'',label:o.status};
+    const total = o.price * o.qty;
+    return `<tr>
+      <td class="order-id">${o.id}</td>
+      <td class="date-cell">1월 ${o.date.slice(3)}일</td>
+      <td>${o.cust}</td>
+      <td class="item-name">${o.item}</td>
+      <td class="c">${o.qty}</td>
+      <td class="r">${fmt(o.price)}</td>
+      <td class="r price-cell">${fmt(total)}</td>
+      <td class="r"><span class="status ${si.cls}">${si.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function switchCat(cat){
+  current = cat;
+  renderTabs();
+  renderPanel();
+}
+
+renderTabs();
+renderPanel();
+</script>
+</body>
+</html>
