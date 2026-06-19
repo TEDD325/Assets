@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>웹사이트 방문 로그 — 반정형 데이터 이해하기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F8F7F4;
+    --surface: #FFFFFF;
+    --surface2: #F2F0EC;
+    --border: #E2DED8;
+    --border-strong: #C8C4BD;
+    --text-primary: #1A1917;
+    --text-secondary: #5C5955;
+    --text-tertiary: #9C9894;
+    --purple-bg: #EEEDFE; --purple-text: #3C3489;
+    --blue-bg: #E6F1FB; --blue-text: #185FA5;
+    --green-bg: #EAF3DE; --green-text: #3B6D11;
+    --amber-bg: #FAEEDA; --amber-text: #854F0B;
+    --red-bg: #FCEBEB; --red-text: #A32D2D;
+    --gray-bg: #F1EFE8; --gray-text: #5F5E5A;
+    --teal-bg: #E1F5EE; --teal-text: #0F6E56;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-size: 15px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* Header */
+  .page-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+  }
+  .page-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+  .page-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.75;
+    max-width: 600px;
+    margin-bottom: 32px;
+  }
+  .page-desc strong { font-weight: 600; color: var(--text-primary); }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    padding: 7px 16px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tab-btn:hover { border-color: var(--border-strong); color: var(--text-primary); }
+  .tab-btn.active {
+    background: var(--text-primary);
+    color: #fff;
+    border-color: var(--text-primary);
+  }
+  .tab-icon { font-size: 14px; }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+  }
+
+  /* Info/annotation boxes */
+  .info-box {
+    background: var(--blue-bg);
+    border: 1px solid #B5D4F4;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--blue-text);
+    line-height: 1.65;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .annotation-box {
+    background: var(--amber-bg);
+    border: 1px solid #FAC775;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--amber-text);
+    line-height: 1.65;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  /* Badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .badge-green { background: var(--green-bg); color: var(--green-text); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber-text); }
+  .badge-red   { background: var(--red-bg);   color: var(--red-text); }
+  .badge-blue  { background: var(--blue-bg);  color: var(--blue-text); }
+  .badge-gray  { background: var(--gray-bg);  color: var(--gray-text); }
+  .badge-purple{ background: var(--purple-bg);color: var(--purple-text); }
+  .badge-teal  { background: var(--teal-bg);  color: var(--teal-text); }
+
+  /* Mono */
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  /* --- Tab: Raw Log --- */
+  .raw-log-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .raw-log-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot-red { background: #F09595; }
+  .dot-amber { background: #FAC775; }
+  .dot-green { background: #97C459; }
+  .raw-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .raw-line:last-child { border-bottom: none; }
+  .raw-line:hover { background: #F0EFFC; }
+  .raw-line.selected { background: var(--blue-bg); }
+  .raw-line .line-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    min-width: 28px;
+    user-select: none;
+  }
+  .raw-line .line-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-primary);
+    line-height: 1.5;
+    word-break: break-all;
+  }
+  .raw-hint {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 8px;
+  }
+  .line-breakdown {
+    display: none;
+    margin-top: 14px;
+  }
+  .line-breakdown.visible { display: block; }
+  .breakdown-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .breakdown-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 12px;
+  }
+  .breakdown-chip .chip-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+  }
+  .breakdown-chip .chip-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-primary);
+  }
+
+  /* --- Tab: Parsed Table --- */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 680px;
+  }
+  thead th {
+    background: var(--surface2);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) td { background: var(--surface2); }
+  tbody tr:hover td { background: var(--blue-bg); cursor: pointer; }
+  tbody tr.selected td { background: #DDEEFF; }
+
+  .mono-cell { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  /* --- Tab: Anatomy --- */
+  .anat-raw {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 2;
+    margin-bottom: 16px;
+    word-break: break-all;
+    color: var(--text-secondary);
+  }
+  .anat-raw .hl {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: default;
+    transition: opacity 0.15s;
+  }
+  .field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+  }
+  .field-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field-card:hover { border-color: var(--border-strong); }
+  .field-card.active { border-color: #378ADD; box-shadow: 0 0 0 2px #B5D4F4; }
+  .field-card .fc-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 5px;
+  }
+  .field-card .fc-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 5px;
+  }
+  .field-card .fc-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .anat-detail {
+    margin-top: 14px;
+    display: none;
+  }
+  .anat-detail.visible { display: block; }
+  .anat-detail-inner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.75;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  /* --- Tab: Status Code --- */
+  .status-list { display: flex; flex-direction: column; gap: 10px; }
+  .status-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .status-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+  }
+  .status-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .status-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+  .status-desc strong { font-weight: 600; color: var(--text-primary); }
+  .tip-box {
+    margin-top: 14px;
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    border-left: 3px solid var(--border-strong);
+  }
+  .tip-box strong { color: var(--text-primary); font-weight: 600; }
+
+  /* --- Footer: 왜 반정형인가 --- */
+  .footer-section {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .footer-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .footer-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .footer-chip .fc-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .footer-chip .fc-body {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+  }
+
+  /* Section label */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <p class="page-eyebrow">반정형 데이터 (semi-structured data)</p>
+  <h1 class="page-title">웹사이트 방문 로그란?</h1>
+  <p class="page-desc">
+    누군가 웹사이트에 방문할 때마다 서버가 자동으로 기록하는 데이터입니다.
+    엑셀처럼 완전히 정형화되어 있지는 않지만, 일정한 패턴이 있어
+    <strong>반정형(semi-structured)</strong>이라고 부릅니다.
+  </p>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('raw')">
+      <span class="tab-icon">📄</span> 원본 로그
+    </button>
+    <button class="tab-btn" onclick="switchTab('status')">
+      <span class="tab-icon">🚦</span> 상태 코드
+    </button>
+  </div>
+
+  <!-- ===== Tab: Raw Log ===== -->
+  <div id="tab-raw">
+    <div class="annotation-box">
+      <span>💡</span>
+      <span>실제 서버에 저장되는 형태입니다. 사람이 읽기 어렵죠? 이 텍스트를 프로그램이 <strong>파싱(분해)</strong>해서 의미 있는 데이터로 만듭니다.</span>
+    </div>
+    <div class="raw-log-wrap">
+      <div class="raw-log-header">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-amber"></span>
+        <span class="dot dot-green"></span>
+        &nbsp; access.log
+      </div>
+      <div class="raw-line" data-idx="0" onclick="highlightLine(0)">
+        <span class="line-num">1</span>
+        <span class="line-text">user_1042 2025-06-19T09:14:23+09:00 Chrome/124.0.6367 200 GET /dashboard 1.24s 45872 Seoul KR</span>
+      </div>
+      <div class="raw-line" data-idx="1" onclick="highlightLine(1)">
+        <span class="line-num">2</span>
+        <span class="line-text">user_0387 2025-06-19T09:15:01+09:00 Safari/17.4.1 404 GET /products/old-item 0.38s 1204 Busan KR</span>
+      </div>
+      <div class="raw-line" data-idx="2" onclick="highlightLine(2)">
+        <span class="line-num">3</span>
+        <span class="line-text">user_2891 2025-06-19T09:15:44+09:00 Edge/124.0.2478 500 POST /api/checkout 8.02s 9831 Tokyo JP</span>
+      </div>
+      <div class="raw-line" data-idx="3" onclick="highlightLine(3)">
+        <span class="line-num">4</span>
+        <span class="line-text">user_1042 2025-06-19T09:16:10+09:00 Chrome/124.0.6367 200 GET /settings 0.91s 22150 Seoul KR</span>
+      </div>
+      <div class="raw-line" data-idx="4" onclick="highlightLine(4)">
+        <span class="line-num">5</span>
+        <span class="line-text">user_5571 2025-06-19T09:17:55+09:00 Firefox/125.0 301 GET /home 0.12s 512 Jeju KR</span>
+      </div>
+    </div>
+    <p class="raw-hint" style="margin-top: 8px;">↑ 행을 클릭하면 각 필드가 무엇을 의미하는지 분해해 보여줍니다</p>
+    <div class="line-breakdown" id="line-breakdown"></div>
+  </div>
+
+  <!-- ===== Tab: Status Code ===== -->
+  <div id="tab-status" style="display:none;">
+    <div class="info-box">
+      <span>ℹ️</span>
+      <span>상태 코드(Status Code)는 서버가 요청을 어떻게 처리했는지 알려주는 3자리 숫자입니다. <strong>앞자리 숫자</strong>가 가장 중요합니다.</span>
+    </div>
+    <div class="status-list">
+      <div class="status-card">
+        <div class="status-icon" style="background:var(--green-bg); color:var(--green-text);">2xx</div>
+        <div>
+          <div class="status-title">
+            성공
+            <span class="badge badge-green">200 OK</span>
+            <span class="badge badge-green">201 Created</span>
+          </div>
+          <p class="status-desc">서버가 요청을 정상적으로 처리했습니다. 200이 가장 흔하며 "페이지를 잘 불러왔어요"라는 의미입니다. 201은 새 데이터(회원가입, 글 작성 등)가 성공적으로 생성됐을 때 사용합니다.</p>
+        </div>
+      </div>
+      <div class="status-card">
+        <div class="status-icon" style="background:var(--blue-bg); color:var(--blue-text);">3xx</div>
+        <div>
+          <div class="status-title">
+            리디렉션
+            <span class="badge badge-blue">301 Moved</span>
+            <span class="badge badge-blue">302 Found</span>
+          </div>
+          <p class="status-desc">요청한 페이지가 다른 주소로 이동했습니다. 브라우저가 자동으로 새 주소로 이동합니다. 301은 영구 이동(도메인 변경), 302는 임시 이동에 사용합니다.</p>
+        </div>
+      </div>
+      <div class="status-card">
+        <div class="status-icon" style="background:var(--amber-bg); color:var(--amber-text);">4xx</div>
+        <div>
+          <div class="status-title">
+            클라이언트 오류
+            <span class="badge badge-amber">404 Not Found</span>
+            <span class="badge badge-amber">403 Forbidden</span>
+          </div>
+          <p class="status-desc"><strong>사용자 측</strong> 문제입니다. 없는 페이지를 요청(404)하거나 권한 없는 페이지에 접근(403)한 경우입니다. 서버는 정상 동작 중이지만 요청 자체가 잘못된 것입니다.</p>
+        </div>
+      </div>
+      <div class="status-card">
+        <div class="status-icon" style="background:var(--red-bg); color:var(--red-text);">5xx</div>
+        <div>
+          <div class="status-title">
+            서버 오류
+            <span class="badge badge-red">500 Server Error</span>
+            <span class="badge badge-red">503 Unavailable</span>
+          </div>
+          <p class="status-desc"><strong>서버 측</strong> 문제입니다. 서버 코드에 버그가 있거나 과부하가 걸린 경우로, 개발자가 즉시 조치해야 합니다. 로그에서 5xx 비율이 갑자기 오르면 장애 신호입니다.</p>
+        </div>
+      </div>
+    </div>
+    <div class="tip-box">
+      📊 <strong>분석 팁:</strong> 로그에서 5xx 비율이 갑자기 오르면 서버 장애 신호, 404가 특정 URL에 집중되면 깨진 링크를 의심합니다. 상태 코드별 비율을 시계열 그래프로 그리는 것이 기본 모니터링입니다.
+    </div>
+  </div>
+
+  <!-- Footer: 왜 반정형인가 -->
+  <div class="footer-section">
+    <p class="footer-eyebrow">왜 반정형 데이터인가?</p>
+    <div class="footer-grid">
+      <div class="footer-chip">
+        <div class="fc-head"><span style="color:var(--green-text);">✓</span> 패턴이 있음</div>
+        <div class="fc-body">필드 순서와 구분자가 일정해 프로그램이 파싱 가능</div>
+      </div>
+      <div class="footer-chip">
+        <div class="fc-head"><span style="color:var(--red-text);">✗</span> 스키마 없음</div>
+        <div class="fc-body">DB처럼 고정된 컬럼 정의가 없고, 로그 형식이 버전마다 다를 수 있음</div>
+      </div>
+      <div class="footer-chip">
+        <div class="fc-head"><span style="color:var(--amber-text);">⋯</span> 선택 필드 혼재</div>
+        <div class="fc-body">어떤 행에는 User-Agent가 있고, 없는 행도 존재할 수 있음</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const TABS = ['raw','status'];
+
+function switchTab(name) {
+  TABS.forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', TABS[i] === name);
+  });
+}
+
+/* Raw Log */
+const lineData = [
+  { parts: ['user_1042','2025-06-19T09:14:23+09:00','Chrome','124.0.6367','200','GET /dashboard','1.24s','45,872 bytes','Seoul KR'],
+    labels: ['유저 ID','날짜·시각','브라우저','버전','상태코드','메서드·경로','응답시간','응답크기','지역'] },
+  { parts: ['user_0387','2025-06-19T09:15:01+09:00','Safari','17.4.1','404','GET /products/old-item','0.38s','1,204 bytes','Busan KR'],
+    labels: ['유저 ID','날짜·시각','브라우저','버전','상태코드','메서드·경로','응답시간','응답크기','지역'] },
+  { parts: ['user_2891','2025-06-19T09:15:44+09:00','Edge','124.0.2478','500','POST /api/checkout','8.02s','9,831 bytes','Tokyo JP'],
+    labels: ['유저 ID','날짜·시각','브라우저','버전','상태코드','메서드·경로','응답시간','응답크기','지역'] },
+  { parts: ['user_1042','2025-06-19T09:16:10+09:00','Chrome','124.0.6367','200','GET /settings','0.91s','22,150 bytes','Seoul KR'],
+    labels: ['유저 ID','날짜·시각','브라우저','버전','상태코드','메서드·경로','응답시간','응답크기','지역'] },
+  { parts: ['user_5571','2025-06-19T09:17:55+09:00','Firefox','125.0','301','GET /home','0.12s','512 bytes','Jeju KR'],
+    labels: ['유저 ID','날짜·시각','브라우저','버전','상태코드','메서드·경로','응답시간','응답크기','지역'] },
+];
+const badgeColors = ['badge-purple','badge-blue','badge-teal','badge-teal','badge-green','badge-gray','badge-amber','badge-gray','badge-blue'];
+
+function highlightLine(idx) {
+  document.querySelectorAll('.raw-line').forEach((el, i) => {
+    el.classList.toggle('selected', i === idx);
+  });
+  const d = lineData[idx];
+  const bd = document.getElementById('line-breakdown');
+  bd.className = 'line-breakdown visible';
+  bd.innerHTML = '<p class="section-label" style="margin-bottom:10px;">행 ' + (idx+1) + ' 분해 결과</p><div class="breakdown-grid">' +
+    d.parts.map((p, i) => `<div class="breakdown-chip"><div class="chip-label">${d.labels[i]}</div><div class="chip-val"><span class="badge ${badgeColors[i]}">${p}</span></div></div>`).join('') +
+    '</div>';
+}
+
+</script>
+</body>
+</html>
