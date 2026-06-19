@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>척도 분류 — 초심자를 위한 시각화</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F5F4F0;
+  --surface: #FFFFFF;
+  --surface2: #EEECE8;
+  --border: #E0DDD8;
+  --text-p: #1A1917;
+  --text-s: #5C5955;
+  --text-t: #9C9894;
+
+  /* 척도별 색상 */
+  --c1: #7F77DD; --c1-bg: #EEEDFE; --c1-mid: #AFA9EC; --c1-dark: #3C3489;
+  --c2: #1D9E75; --c2-bg: #E1F5EE; --c2-mid: #5DCAA5; --c2-dark: #085041;
+  --c3: #BA7517; --c3-bg: #FAEEDA; --c3-mid: #EF9F27; --c3-dark: #633806;
+  --c4: #D85A30; --c4-bg: #FAECE7; --c4-mid: #F0997B; --c4-dark: #4A1B0C;
+
+  --r: 10px;
+  --r-lg: 16px;
+}
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--text-p);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 52px 24px 88px;
+}
+
+/* ── Header ── */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-t);
+  margin-bottom: 8px;
+}
+h1 {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--text-p);
+  line-height: 1.25;
+  margin-bottom: 12px;
+}
+.subtitle {
+  font-size: 14px;
+  color: var(--text-s);
+  line-height: 1.75;
+  max-width: 560px;
+  margin-bottom: 40px;
+}
+.subtitle strong { font-weight: 600; color: var(--text-p); }
+
+/* ── Pyramid ── */
+.pyramid-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 28px 20px 20px;
+  margin-bottom: 36px;
+}
+.pyramid-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-t);
+  text-align: center;
+  margin-bottom: 20px;
+}
+.pyramid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.pyr-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.pyr-row:hover { transform: scale(1.015); }
+.pyr-bar {
+  border-radius: 6px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  gap: 8px;
+  transition: filter 0.15s;
+  position: relative;
+}
+.pyr-bar:hover { filter: brightness(1.05); }
+.pyr-num {
+  font-size: 20px;
+  font-weight: 700;
+  opacity: 0.55;
+}
+.pyr-label { font-size: 14px; letter-spacing: 0.01em; }
+.pyr-sub {
+  font-size: 11px;
+  opacity: 0.8;
+  margin-left: 4px;
+}
+
+.pyr-legend {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pyr-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-s);
+}
+.pyr-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+
+/* ── Scale cards ── */
+.scales { display: flex; flex-direction: column; gap: 18px; }
+
+.scale-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.scale-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.07); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+.card-num {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.card-titles { flex: 1; }
+.card-name-ko {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-p);
+  line-height: 1.2;
+}
+.card-name-en {
+  font-size: 12px;
+  color: var(--text-t);
+  font-weight: 500;
+  margin-top: 2px;
+}
+.card-tagline {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.chevron {
+  font-size: 18px;
+  color: var(--text-t);
+  transition: transform 0.25s;
+  flex-shrink: 0;
+}
+.card-body {
+  display: none;
+  padding: 0 22px 22px;
+}
+.card-body.open { display: block; }
+
+/* one-liner */
+.one-liner {
+  font-size: 14px;
+  color: var(--text-s);
+  line-height: 1.75;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: var(--r);
+  border-left: 3px solid var(--border);
+  background: var(--surface2);
+}
+.one-liner strong { font-weight: 600; color: var(--text-p); }
+
+/* analogy box */
+.analogy {
+  margin-top: 14px;
+  border-radius: var(--r);
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.analogy-icon { font-size: 26px; flex-shrink: 0; line-height: 1; }
+.analogy-body { font-size: 13px; color: var(--text-s); line-height: 1.7; }
+.analogy-body strong { font-weight: 600; }
+
+/* examples */
+.ex-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-t);
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+.ex-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.ex-chip {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+
+/* can / cannot */
+.ops-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+.ops-box {
+  border-radius: var(--r);
+  padding: 12px 14px;
+}
+.ops-box-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ops-item {
+  font-size: 13px;
+  color: var(--text-s);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  line-height: 1.6;
+}
+.ops-item + .ops-item { margin-top: 4px; }
+.ops-icon { font-size: 13px; flex-shrink: 0; }
+
+/* visual illustration */
+.vis-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-t);
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+/* ── Nominal visual: label grid ── */
+.nom-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.nom-cell {
+  padding: 8px 16px;
+  border-radius: var(--r);
+  font-size: 14px;
+  font-weight: 600;
+  border: 2px solid;
+}
+.nom-equal {
+  font-size: 12px;
+  color: var(--text-t);
+  margin: 0 2px;
+  display: flex;
+  align-items: center;
+}
+.nom-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.nom-note {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-t);
+}
+.nom-no {
+  text-decoration: line-through;
+  color: var(--text-t);
+}
+
+/* ── Ordinal visual: rank ladder ── */
+.ord-ladder {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.ord-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.ord-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.ord-bar {
+  width: 54px;
+  border-radius: 6px 6px 0 0;
+}
+.ord-step-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+.ord-arrow {
+  font-size: 20px;
+  color: var(--text-t);
+  padding-bottom: 8px;
+}
+.ord-note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-t);
+  line-height: 1.7;
+}
+.ord-brace {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-t);
+}
+
+/* ── Interval visual: thermometer ── */
+.thermo-wrap {
+  display: flex;
+  gap: 24px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.thermo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.thermo-bar-bg {
+  width: 36px;
+  height: 140px;
+  background: var(--surface2);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.thermo-fill {
+  width: 100%;
+  border-radius: 18px;
+  transition: height 0.4s;
+}
+.thermo-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+.thermo-sublabel {
+  font-size: 11px;
+  color: var(--text-t);
+  text-align: center;
+}
+.thermo-ops {
+  font-size: 13px;
+  color: var(--text-s);
+  line-height: 1.8;
+}
+.thermo-ops .ok { color: var(--c3-dark); font-weight: 600; }
+.thermo-ops .no { color: #A32D2D; font-weight: 600; }
+
+/* ── Ratio visual: bar chart ── */
+.ratio-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 110px;
+}
+.ratio-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+}
+.ratio-bar {
+  width: 100%;
+  border-radius: 5px 5px 0 0;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 5px;
+}
+.ratio-bar-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+.ratio-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-s);
+}
+.ratio-note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-t);
+  line-height: 1.7;
+}
+
+/* ── Comparison table ── */
+.compare-section {
+  margin-top: 40px;
+}
+.compare-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-t);
+  margin-bottom: 12px;
+}
+.compare-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 560px;
+}
+thead th {
+  background: var(--surface2);
+  color: var(--text-s);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  color: var(--text-p);
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:nth-child(even) td { background: var(--bg); }
+.ck { font-size: 15px; }
+
+/* ── Key takeaway ── */
+.takeaway {
+  margin-top: 32px;
+  background: #1A1917;
+  color: #fff;
+  border-radius: var(--r-lg);
+  padding: 22px 24px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.takeaway-icon { font-size: 28px; flex-shrink: 0; line-height: 1.1; }
+.takeaway-text { font-size: 14px; line-height: 1.8; color: rgba(255,255,255,0.82); }
+.takeaway-text strong { color: #fff; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <p class="eyebrow">데이터 분석 기초 · 측정 이론</p>
+  <h1>척도 분류<br>한눈에 이해하기</h1>
+  <p class="subtitle">
+    데이터마다 <strong>다룰 수 있는 연산이 다릅니다.</strong>
+    혈액형의 평균을 구하면 이상하죠? 척도를 알면 어떤 분석이 적절한지 판단할 수 있습니다.
+  </p>
+
+  <!-- Pyramid -->
+  <div class="pyramid-wrap">
+    <p class="pyramid-title">척도의 계층 — 아래로 갈수록 더 많은 정보를 담습니다</p>
+    <div class="pyramid">
+      <div class="pyr-row">
+        <div class="pyr-bar" style="width:220px; background:var(--c1);">
+          <span class="pyr-num">1</span>
+          <span class="pyr-label">명목척도</span>
+          <span class="pyr-sub">이름만</span>
+        </div>
+      </div>
+      <div class="pyr-row">
+        <div class="pyr-bar" style="width:320px; background:var(--c2);">
+          <span class="pyr-num">2</span>
+          <span class="pyr-label">서열척도</span>
+          <span class="pyr-sub">순서 추가</span>
+        </div>
+      </div>
+      <div class="pyr-row">
+        <div class="pyr-bar" style="width:420px; background:var(--c3);">
+          <span class="pyr-num">3</span>
+          <span class="pyr-label">등간척도</span>
+          <span class="pyr-sub">간격 추가</span>
+        </div>
+      </div>
+      <div class="pyr-row">
+        <div class="pyr-bar" style="width:520px; background:var(--c4);">
+          <span class="pyr-num">4</span>
+          <span class="pyr-label">비율척도</span>
+          <span class="pyr-sub">절대 0 추가</span>
+        </div>
+      </div>
+    </div>
+    <div class="pyr-legend">
+      <div class="pyr-legend-item"><div class="pyr-dot" style="background:var(--c1);"></div> 명목</div>
+      <div class="pyr-legend-item"><div class="pyr-dot" style="background:var(--c2);"></div> 서열</div>
+      <div class="pyr-legend-item"><div class="pyr-dot" style="background:var(--c3);"></div> 등간</div>
+      <div class="pyr-legend-item"><div class="pyr-dot" style="background:var(--c4);"></div> 비율</div>
+    </div>
+  </div>
+
+  <!-- Scale Cards -->
+  <div class="scales">
+
+    <!-- ① 명목척도 -->
+    <div class="scale-card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num" style="background:var(--c1);">1</div>
+        <div class="card-titles">
+          <div class="card-name-ko">명목척도</div>
+          <div class="card-name-en">Nominal Scale</div>
+        </div>
+        <div class="card-tagline" style="background:var(--c1-bg); color:var(--c1-dark);">이름·범주만 있어요</div>
+        <span class="chevron">›</span>
+      </div>
+      <div class="card-body open">
+        <div class="one-liner">
+          값들은 그냥 <strong>이름표</strong>입니다. 어느 것이 크거나 작다고 말할 수 없고, 그냥 <strong>종류가 다를 뿐</strong>입니다.
+        </div>
+        <div class="analogy" style="background:var(--c1-bg);">
+          <div class="analogy-icon">🪣</div>
+          <div class="analogy-body">
+            <strong>비유:</strong> 반 친구들을 모자 색깔(빨강·파랑·노랑)로 나눈 것과 같아요.
+            빨강이 파랑보다 "더 크다"고 할 수 없죠. 그냥 다른 색일 뿐입니다.
+            <br><br>"혈액형 A형은 B형보다 낫다" — 이런 말은 의미가 없어요.
+          </div>
+        </div>
+        <p class="ex-title">실무 예시</p>
+        <div class="ex-chips">
+          <span class="ex-chip" style="background:var(--c1-bg); color:var(--c1-dark); border-color:var(--c1-mid);">성별</span>
+          <span class="ex-chip" style="background:var(--c1-bg); color:var(--c1-dark); border-color:var(--c1-mid);">혈액형</span>
+          <span class="ex-chip" style="background:var(--c1-bg); color:var(--c1-dark); border-color:var(--c1-mid);">지역</span>
+          <span class="ex-chip" style="background:var(--c1-bg); color:var(--c1-dark); border-color:var(--c1-mid);">상품 카테고리</span>
+          <span class="ex-chip" style="background:var(--c1-bg); color:var(--c1-dark); border-color:var(--c1-mid);">결제 수단</span>
+          <span class="ex-chip" style="background:var(--c1-bg); color:var(--c1-dark); border-color:var(--c1-mid);">고객 ID</span>
+        </div>
+
+        <p class="vis-title">시각화 — 혈액형은 그냥 "다른" 것</p>
+        <div>
+          <div class="nom-row">
+            <div class="nom-cell" style="background:var(--c1-bg); color:var(--c1-dark); border-color:var(--c1-mid);">A형</div>
+            <div class="nom-equal">≠</div>
+            <div class="nom-cell" style="background:var(--c1-bg); color:var(--c1-dark); border-color:var(--c1-mid);">B형</div>
+            <div class="nom-equal">≠</div>
+            <div class="nom-cell" style="background:var(--c1-bg); color:var(--c1-dark); border-color:var(--c1-mid);">O형</div>
+            <div class="nom-equal">≠</div>
+            <div class="nom-cell" style="background:var(--c1-bg); color:var(--c1-dark); border-color:var(--c1-mid);">AB형</div>
+          </div>
+          <p class="nom-note">→ 서로 다를 뿐, <span class="nom-no">A형 > B형</span> 같은 비교는 의미 없음</p>
+        </div>
+
+        <div class="ops-grid">
+          <div class="ops-box" style="background:var(--c1-bg);">
+            <div class="ops-box-title" style="color:var(--c1-dark);">✅ 할 수 있는 것</div>
+            <div class="ops-item"><span class="ops-icon">🔢</span> 개수 세기 (몇 명이 A형?)</div>
+            <div class="ops-item"><span class="ops-icon">📊</span> 비율 계산 (A형 비율 30%)</div>
+            <div class="ops-item"><span class="ops-icon">🏆</span> 최빈값 (가장 많은 혈액형)</div>
+          </div>
+          <div class="ops-box" style="background:#FCEBEB;">
+            <div class="ops-box-title" style="color:#A32D2D;">❌ 하면 안 되는 것</div>
+            <div class="ops-item"><span class="ops-icon">🚫</span> 평균 구하기</div>
+            <div class="ops-item"><span class="ops-icon">🚫</span> A형 > B형 비교</div>
+            <div class="ops-item"><span class="ops-icon">🚫</span> 더하기·빼기</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 서열척도 -->
+    <div class="scale-card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num" style="background:var(--c2);">2</div>
+        <div class="card-titles">
+          <div class="card-name-ko">서열척도</div>
+          <div class="card-name-en">Ordinal Scale</div>
+        </div>
+        <div class="card-tagline" style="background:var(--c2-bg); color:var(--c2-dark);">순서가 생겼어요</div>
+        <span class="chevron">›</span>
+      </div>
+      <div class="card-body">
+        <div class="one-liner">
+          값 사이에 <strong>순서가 있습니다.</strong> 하지만 1등과 2등 사이의 간격이, 2등과 3등 사이의 간격과 <strong>똑같다고 볼 수 없습니다.</strong>
+        </div>
+        <div class="analogy" style="background:var(--c2-bg);">
+          <div class="analogy-icon">🏁</div>
+          <div class="analogy-body">
+            <strong>비유:</strong> 달리기 경주 순위를 생각해 보세요.
+            1등이 2등보다 빠르고, 2등이 3등보다 빠른 건 알아요.
+            하지만 1등과 2등의 격차가, 2등과 3등의 격차와 <strong>똑같다고는 말할 수 없죠.</strong>
+            <br><br>만족도 1점→2점 상승 = 4점→5점 상승? 꼭 그렇지는 않아요.
+          </div>
+        </div>
+        <p class="ex-title">실무 예시</p>
+        <div class="ex-chips">
+          <span class="ex-chip" style="background:var(--c2-bg); color:var(--c2-dark); border-color:var(--c2-mid);">만족도 (1~5점)</span>
+          <span class="ex-chip" style="background:var(--c2-bg); color:var(--c2-dark); border-color:var(--c2-mid);">회원 등급 (브론즈~VIP)</span>
+          <span class="ex-chip" style="background:var(--c2-bg); color:var(--c2-dark); border-color:var(--c2-mid);">학력 수준</span>
+          <span class="ex-chip" style="background:var(--c2-bg); color:var(--c2-dark); border-color:var(--c2-mid);">위험 등급</span>
+          <span class="ex-chip" style="background:var(--c2-bg); color:var(--c2-dark); border-color:var(--c2-mid);">선호도 순위</span>
+        </div>
+
+        <p class="vis-title">시각화 — 회원 등급: 순서는 있지만 간격은 불균일할 수 있다</p>
+        <div class="ord-ladder">
+          <div class="ord-step">
+            <div class="ord-bar-wrap" style="height:90px;">
+              <div class="ord-bar" style="height:30px; background:var(--c2-bg); border:2px solid var(--c2-mid);"></div>
+            </div>
+            <div class="ord-step-label" style="color:var(--c2-dark);">브론즈</div>
+          </div>
+          <div class="ord-arrow">→</div>
+          <div class="ord-step">
+            <div class="ord-bar-wrap" style="height:90px;">
+              <div class="ord-bar" style="height:50px; background:var(--c2-mid);"></div>
+            </div>
+            <div class="ord-step-label" style="color:var(--c2-dark);">실버</div>
+          </div>
+          <div class="ord-arrow">→</div>
+          <div class="ord-step">
+            <div class="ord-bar-wrap" style="height:90px;">
+              <div class="ord-bar" style="height:68px; background:var(--c2);"></div>
+            </div>
+            <div class="ord-step-label" style="color:var(--c2-dark);">골드</div>
+          </div>
+          <div class="ord-arrow">→</div>
+          <div class="ord-step">
+            <div class="ord-bar-wrap" style="height:90px;">
+              <div class="ord-bar" style="height:90px; background:var(--c2-dark);"></div>
+            </div>
+            <div class="ord-step-label" style="color:var(--c2-dark);">VIP</div>
+          </div>
+        </div>
+        <p class="ord-note">→ 브론즈 < 실버 < 골드 < VIP 순서는 명확합니다.<br>
+        하지만 브론즈→실버 격차가 골드→VIP 격차와 "똑같다"고 볼 수 없어요.</p>
+
+        <div class="ops-grid">
+          <div class="ops-box" style="background:var(--c2-bg);">
+            <div class="ops-box-title" style="color:var(--c2-dark);">✅ 할 수 있는 것</div>
+            <div class="ops-item"><span class="ops-icon">🔢</span> 개수 세기</div>
+            <div class="ops-item"><span class="ops-icon">↕️</span> 순서 비교 (VIP > 골드)</div>
+            <div class="ops-item"><span class="ops-icon">📍</span> 중앙값 (가운데 순위)</div>
+          </div>
+          <div class="ops-box" style="background:#FCEBEB;">
+            <div class="ops-box-title" style="color:#A32D2D;">❌ 하면 안 되는 것</div>
+            <div class="ops-item"><span class="ops-icon">🚫</span> 평균을 그대로 해석</div>
+            <div class="ops-item"><span class="ops-icon">🚫</span> 더하기·빼기·곱하기</div>
+            <div class="ops-item"><span class="ops-icon">🚫</span> "2배 더 만족" 같은 표현</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 등간척도 -->
+    <div class="scale-card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num" style="background:var(--c3);">3</div>
+        <div class="card-titles">
+          <div class="card-name-ko">등간척도</div>
+          <div class="card-name-en">Interval Scale</div>
+        </div>
+        <div class="card-tagline" style="background:var(--c3-bg); color:var(--c3-dark);">간격이 일정해요</div>
+        <span class="chevron">›</span>
+      </div>
+      <div class="card-body">
+        <div class="one-liner">
+          값 사이의 <strong>간격이 일정합니다.</strong> 하지만 <strong>진짜 0이 없어요.</strong> 즉 "두 배"라는 말을 쓸 수 없습니다.
+        </div>
+        <div class="analogy" style="background:var(--c3-bg);">
+          <div class="analogy-icon">🌡️</div>
+          <div class="analogy-body">
+            <strong>비유:</strong> 온도계를 생각해 보세요.
+            20도는 10도보다 딱 10도 높습니다. 간격이 일정하죠.
+            하지만 0도가 "온도가 전혀 없다"는 뜻은 아니에요.
+            <br><br>그래서 "20도는 10도보다 2배 덥다" — 이 말은 틀렸습니다!
+          </div>
+        </div>
+        <p class="ex-title">실무 예시</p>
+        <div class="ex-chips">
+          <span class="ex-chip" style="background:var(--c3-bg); color:var(--c3-dark); border-color:var(--c3-mid);">섭씨 온도 (°C)</span>
+          <span class="ex-chip" style="background:var(--c3-bg); color:var(--c3-dark); border-color:var(--c3-mid);">IQ 점수</span>
+          <span class="ex-chip" style="background:var(--c3-bg); color:var(--c3-dark); border-color:var(--c3-mid);">표준화 점수</span>
+          <span class="ex-chip" style="background:var(--c3-bg); color:var(--c3-dark); border-color:var(--c3-mid);">연도 (2020년, 2021년…)</span>
+        </div>
+
+        <p class="vis-title">시각화 — 온도 차이는 같지만 "두 배"는 이상해요</p>
+        <div class="thermo-wrap">
+          <div style="display:flex; gap:12px; align-items:flex-end;">
+            <div class="thermo">
+              <div class="thermo-bar-bg">
+                <div class="thermo-fill" style="height:25%; background:var(--c3-mid);"></div>
+              </div>
+              <div class="thermo-label" style="color:var(--c3-dark);">10°C</div>
+              <div class="thermo-sublabel">봄 날씨</div>
+            </div>
+            <div style="font-size:22px; color:var(--text-t); padding-bottom:28px;">+10°</div>
+            <div class="thermo">
+              <div class="thermo-bar-bg">
+                <div class="thermo-fill" style="height:50%; background:var(--c3);"></div>
+              </div>
+              <div class="thermo-label" style="color:var(--c3-dark);">20°C</div>
+              <div class="thermo-sublabel">따뜻한 날</div>
+            </div>
+            <div style="font-size:22px; color:var(--text-t); padding-bottom:28px;">+10°</div>
+            <div class="thermo">
+              <div class="thermo-bar-bg">
+                <div class="thermo-fill" style="height:75%; background:var(--c3-dark);"></div>
+              </div>
+              <div class="thermo-label" style="color:var(--c3-dark);">30°C</div>
+              <div class="thermo-sublabel">더운 날</div>
+            </div>
+          </div>
+          <div class="thermo-ops">
+            <div style="margin-bottom:6px;">✅ <span class="ok">30° - 20° = 10° 차이</span> → 맞음</div>
+            <div style="margin-bottom:6px;">✅ <span class="ok">20° - 10° = 10° 차이</span> → 맞음</div>
+            <div style="margin-bottom:6px;">❌ <span class="no">"20°는 10°의 2배 덥다"</span> → 틀림</div>
+            <div style="font-size:12px; color:var(--text-t); margin-top:4px;">(0°C가 "온도 없음"이 아니기 때문)</div>
+          </div>
+        </div>
+
+        <div class="ops-grid">
+          <div class="ops-box" style="background:var(--c3-bg);">
+            <div class="ops-box-title" style="color:var(--c3-dark);">✅ 할 수 있는 것</div>
+            <div class="ops-item"><span class="ops-icon">➕</span> 더하기·빼기 (간격 계산)</div>
+            <div class="ops-item"><span class="ops-icon">📊</span> 평균·표준편차</div>
+            <div class="ops-item"><span class="ops-icon">↕️</span> 순서 비교</div>
+          </div>
+          <div class="ops-box" style="background:#FCEBEB;">
+            <div class="ops-box-title" style="color:#A32D2D;">❌ 하면 안 되는 것</div>
+            <div class="ops-item"><span class="ops-icon">🚫</span> "몇 배" 같은 비율 해석</div>
+            <div class="ops-item"><span class="ops-icon">🚫</span> 곱하기·나누기 비율 표현</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ 비율척도 -->
+    <div class="scale-card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num" style="background:var(--c4);">4</div>
+        <div class="card-titles">
+          <div class="card-name-ko">비율척도</div>
+          <div class="card-name-en">Ratio Scale</div>
+        </div>
+        <div class="card-tagline" style="background:var(--c4-bg); color:var(--c4-dark);">진짜 0이 있어요</div>
+        <span class="chevron">›</span>
+      </div>
+      <div class="card-body">
+        <div class="one-liner">
+          간격도 일정하고, <strong>진짜 0(없음)이 존재합니다.</strong> 그래서 "두 배", "절반" 같은 <strong>비율 표현도 가능합니다.</strong> 가장 강력한 척도입니다.
+        </div>
+        <div class="analogy" style="background:var(--c4-bg);">
+          <div class="analogy-icon">💰</div>
+          <div class="analogy-body">
+            <strong>비유:</strong> 매출액을 생각해 보세요.
+            매출 0원은 진짜로 "판매가 없었다"는 의미입니다.
+            매출 200만 원은 100만 원의 딱 두 배예요.
+            <br><br>키 0cm = 키가 없다. 주문 수량 0개 = 주문이 없다.
+            이처럼 0이 완전한 '없음'을 뜻하면 비율척도입니다.
+          </div>
+        </div>
+        <p class="ex-title">실무 예시</p>
+        <div class="ex-chips">
+          <span class="ex-chip" style="background:var(--c4-bg); color:var(--c4-dark); border-color:var(--c4-mid);">매출액</span>
+          <span class="ex-chip" style="background:var(--c4-bg); color:var(--c4-dark); border-color:var(--c4-mid);">구매 금액</span>
+          <span class="ex-chip" style="background:var(--c4-bg); color:var(--c4-dark); border-color:var(--c4-mid);">주문 수량</span>
+          <span class="ex-chip" style="background:var(--c4-bg); color:var(--c4-dark); border-color:var(--c4-mid);">키·몸무게</span>
+          <span class="ex-chip" style="background:var(--c4-bg); color:var(--c4-dark); border-color:var(--c4-mid);">나이</span>
+          <span class="ex-chip" style="background:var(--c4-bg); color:var(--c4-dark); border-color:var(--c4-mid);">거리·시간</span>
+        </div>
+
+        <p class="vis-title">시각화 — 매출: 200만 원은 100만 원의 정확히 2배</p>
+        <div>
+          <div class="ratio-chart">
+            <div class="ratio-bar-col">
+              <div class="ratio-bar" style="height:30px; background:var(--c4-bg); border:2px solid var(--c4-mid);">
+                <span class="ratio-bar-val" style="color:var(--c4-dark);">0</span>
+              </div>
+              <div class="ratio-label">0원</div>
+            </div>
+            <div class="ratio-bar-col">
+              <div class="ratio-bar" style="height:50px; background:var(--c4-mid);">
+                <span class="ratio-bar-val">50</span>
+              </div>
+              <div class="ratio-label">50만</div>
+            </div>
+            <div class="ratio-bar-col">
+              <div class="ratio-bar" style="height:80px; background:var(--c4);">
+                <span class="ratio-bar-val">100</span>
+              </div>
+              <div class="ratio-label">100만</div>
+            </div>
+            <div class="ratio-bar-col">
+              <div class="ratio-bar" style="height:110px; background:var(--c4-dark);">
+                <span class="ratio-bar-val">200</span>
+              </div>
+              <div class="ratio-label">200만</div>
+            </div>
+          </div>
+          <p class="ratio-note">
+            → 0원 = 진짜 "판매 없음"이므로, <strong style="color:var(--c4-dark);">200만 원 = 100만 원의 2배</strong>라고 말할 수 있습니다.<br>
+            실무 수치 분석(매출, 수량, 시간 등)에서 가장 많이 사용하는 척도입니다.
+          </p>
+        </div>
+
+        <div class="ops-grid">
+          <div class="ops-box" style="background:var(--c4-bg);">
+            <div class="ops-box-title" style="color:var(--c4-dark);">✅ 할 수 있는 것 (전부 다!)</div>
+            <div class="ops-item"><span class="ops-icon">➕</span> 더하기·빼기</div>
+            <div class="ops-item"><span class="ops-icon">✖️</span> 곱하기·나누기</div>
+            <div class="ops-item"><span class="ops-icon">📊</span> 평균·표준편차·비율</div>
+            <div class="ops-item"><span class="ops-icon">2️⃣</span> "몇 배" 표현 가능</div>
+          </div>
+          <div class="ops-box" style="background:#FCEBEB;">
+            <div class="ops-box-title" style="color:#A32D2D;">❌ 주의할 것</div>
+            <div class="ops-item"><span class="ops-icon">⚠️</span> 음수가 나오는 척도는 비율척도가 아님</div>
+            <div class="ops-item"><span class="ops-icon">⚠️</span> 0이 "없음"이 아닌지 항상 확인</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /scales -->
+
+  <!-- Compare Table -->
+  <div class="compare-section">
+    <p class="compare-title">4가지 척도 한눈에 비교</p>
+    <div class="compare-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>척도</th>
+            <th>대표 예시</th>
+            <th>순서 비교</th>
+            <th>간격 동일</th>
+            <th>절대 0</th>
+            <th>비율 해석</th>
+            <th>평균 계산</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:var(--c1-dark);">① 명목</strong></td>
+            <td>혈액형, 성별</td>
+            <td class="ck">✗</td>
+            <td class="ck">✗</td>
+            <td class="ck">✗</td>
+            <td class="ck">✗</td>
+            <td class="ck">✗</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--c2-dark);">② 서열</strong></td>
+            <td>만족도, 회원등급</td>
+            <td class="ck">✅</td>
+            <td class="ck">✗</td>
+            <td class="ck">✗</td>
+            <td class="ck">✗</td>
+            <td class="ck">주의</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--c3-dark);">③ 등간</strong></td>
+            <td>온도, IQ</td>
+            <td class="ck">✅</td>
+            <td class="ck">✅</td>
+            <td class="ck">✗</td>
+            <td class="ck">✗</td>
+            <td class="ck">✅</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--c4-dark);">④ 비율</strong></td>
+            <td>매출, 키, 수량</td>
+            <td class="ck">✅</td>
+            <td class="ck">✅</td>
+            <td class="ck">✅</td>
+            <td class="ck">✅</td>
+            <td class="ck">✅</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Takeaway -->
+  <div class="takeaway">
+    <div class="takeaway-icon">💡</div>
+    <div class="takeaway-text">
+      <strong>핵심 질문 하나만 기억하세요</strong><br>
+      데이터를 받으면 이렇게 물어보세요: <strong>"이 값에 순서가 있나? 간격이 균일한가? 0이 진짜 없음을 뜻하나?"</strong><br>
+      세 질문에 모두 Yes면 비율척도, 하나씩 빠질수록 등간 → 서열 → 명목척도입니다.
+      척도를 알아야 어떤 통계를 써도 되는지 판단할 수 있습니다.
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function toggle(header) {
+    const body = header.nextElementSibling;
+    const chevron = header.querySelector('.chevron');
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+  }
+
+  // 첫 번째 카드 이미 열려 있으므로 chevron 초기화
+  document.querySelectorAll('.card-header').forEach((h, i) => {
+    const chevron = h.querySelector('.chevron');
+    if (i === 0) chevron.style.transform = 'rotate(90deg)';
+  });
+</script>
+</body>
+</html>
