@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>데이터 유형 4종 — 초심자를 위한 시각화</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F6F5F1;
+  --surface: #FFFFFF;
+  --surface2: #EDECEA;
+  --border: #E1DED9;
+  --border-mid: #C9C6C0;
+  --text-p: #18171A;
+  --text-s: #5A5755;
+  --text-t: #9A9794;
+
+  /* 이산형 — 파랑 */
+  --A: #2970D4; --A-bg: #E8F0FC; --A-mid: #7FAAEE; --A-dk: #0D3E8E;
+  /* 연속형 — 초록 */
+  --B: #2A9E65; --B-bg: #E3F5EC; --B-mid: #72CDA0; --B-dk: #0E5C38;
+  /* 명목형 — 핑크 */
+  --C: #C74E78; --C-bg: #FAEAF0; --C-mid: #E891AE; --C-dk: #7A2347;
+  /* 순서형 — 앰버 */
+  --D: #C07D14; --D-bg: #FBF0DC; --D-mid: #E8B95A; --D-dk: #6B420A;
+}
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--text-p);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.page { max-width: 860px; margin: 0 auto; padding: 52px 24px 96px; }
+
+/* ── 헤더 ── */
+.eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-t); margin-bottom: 8px;
+}
+h1 { font-size: 30px; font-weight: 700; line-height: 1.25; margin-bottom: 12px; }
+.lead {
+  font-size: 14px; color: var(--text-s); line-height: 1.8;
+  max-width: 600px; margin-bottom: 48px;
+}
+.lead strong { font-weight: 600; color: var(--text-p); }
+
+/* ── 큰 그림 지도 ── */
+.map-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 52px;
+}
+.map-title {
+  font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-t); margin-bottom: 18px;
+}
+.map-tree {
+  display: flex; gap: 12px; align-items: stretch;
+}
+.map-root {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--text-p); color: #fff;
+  border-radius: 12px; padding: 14px 18px;
+  font-size: 14px; font-weight: 700; writing-mode: vertical-rl;
+  flex-shrink: 0; letter-spacing: .05em;
+}
+.map-branches {
+  display: flex; flex-direction: column; gap: 10px; flex: 1;
+}
+.map-branch {
+  display: flex; gap: 10px; align-items: stretch;
+}
+.map-parent {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; padding: 12px 16px;
+  font-size: 14px; font-weight: 700; flex-shrink: 0; width: 90px;
+  text-align: center; line-height: 1.3;
+}
+.map-children {
+  display: flex; gap: 8px; flex: 1;
+}
+.map-child {
+  flex: 1; border-radius: 10px; padding: 12px 14px;
+  border: 2px solid;
+}
+.map-child-name { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.map-child-key { font-size: 12px; line-height: 1.5; }
+.map-child-ex { font-size: 11px; margin-top: 5px; opacity: .7; }
+.map-connector {
+  display: flex; align-items: center; justify-content: center;
+  width: 16px; flex-shrink: 0; color: var(--text-t); font-size: 18px;
+}
+
+/* ── 섹션 공통 ── */
+.section { margin-bottom: 60px; }
+.section-head {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+  padding-bottom: 16px; border-bottom: 2px solid;
+}
+.section-num {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.section-name-ko { font-size: 20px; font-weight: 700; line-height: 1.2; }
+.section-name-en { font-size: 12px; font-weight: 500; margin-top: 2px; }
+.section-tag {
+  margin-left: auto; font-size: 12px; font-weight: 700;
+  padding: 4px 12px; border-radius: 999px; flex-shrink: 0;
+}
+
+/* 정의 박스 */
+.def-box {
+  border-radius: 12px; padding: 16px 20px; margin-bottom: 16px;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.def-emoji { font-size: 28px; flex-shrink: 0; line-height: 1.1; }
+.def-text { font-size: 14px; line-height: 1.8; }
+.def-text strong { font-weight: 700; }
+
+/* 비유 */
+.analogy-box {
+  background: var(--surface2); border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 16px;
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 13px; color: var(--text-s); line-height: 1.75;
+  border-left: 3px solid var(--border-mid);
+}
+.analogy-box strong { font-weight: 600; color: var(--text-p); }
+
+/* 2열 그리드 */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+
+/* 시각화 카드 */
+.vis-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.vis-label {
+  font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-t); margin-bottom: 14px;
+}
+
+/* 예시 칩 */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font-size: 12px; font-weight: 600;
+  padding: 4px 12px; border-radius: 999px; border: 1.5px solid;
+}
+
+/* 가능/불가 박스 */
+.ops-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.ops-box { border-radius: 10px; padding: 12px 14px; }
+.ops-title {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 5px;
+}
+.ops-item {
+  font-size: 13px; color: var(--text-s); line-height: 1.65;
+  display: flex; align-items: baseline; gap: 6px;
+}
+.ops-item + .ops-item { margin-top: 3px; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━
+   A. 이산형 시각화
+━━━━━━━━━━━━━━━━━━━━━━━ */
+.disc-scene {
+  display: flex; flex-direction: column; gap: 14px;
+}
+.disc-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.disc-circle {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
+  transition: transform .2s;
+}
+.disc-circle:hover { transform: scale(1.15); }
+.disc-ghost {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 2px dashed var(--A-mid); display: flex; align-items: center;
+  justify-content: center; font-size: 11px; font-weight: 700;
+  color: var(--A-mid); flex-shrink: 0;
+}
+.disc-label { font-size: 12px; color: var(--text-t); }
+.disc-arrow { font-size: 14px; color: var(--text-t); }
+
+/* 숫자선 (이산) */
+.num-line-wrap { margin: 6px 0; }
+.num-line {
+  position: relative; height: 4px; border-radius: 2px;
+  background: var(--border); margin: 20px 0 8px;
+}
+.num-line-fill {
+  position: absolute; left: 0; top: 0; height: 100%;
+  border-radius: 2px;
+}
+.num-dot-row {
+  position: absolute; top: -8px; left: 0; right: 0;
+  display: flex; justify-content: space-between;
+}
+.num-dot {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid;
+  background: var(--surface); display: flex; align-items: center;
+  justify-content: center; font-size: 10px; font-weight: 700;
+  transform: translateX(-50%);
+}
+.num-dot.filled { color: #fff; }
+.num-labels {
+  display: flex; justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--text-t); padding: 0 0;
+}
+.num-note { font-size: 12px; color: var(--text-t); margin-top: 6px; line-height: 1.6; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━
+   B. 연속형 시각화
+━━━━━━━━━━━━━━━━━━━━━━━ */
+.cont-zoom {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.zoom-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.zoom-level {
+  font-size: 11px; font-weight: 700; color: var(--text-t);
+  width: 52px; flex-shrink: 0; text-align: right;
+}
+.zoom-line {
+  flex: 1; height: 6px; border-radius: 3px;
+  position: relative;
+}
+.zoom-tick {
+  position: absolute; top: -8px;
+  width: 2px; height: 22px;
+  background: var(--B);
+  transform: translateX(-1px);
+}
+.zoom-tick-label {
+  position: absolute; top: -22px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--B-dk);
+  transform: translateX(-50%); white-space: nowrap;
+}
+.zoom-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 600; color: var(--B-dk);
+  width: 80px; flex-shrink: 0;
+}
+.zoom-arrow { font-size: 13px; color: var(--text-t); align-self: center; }
+.cont-note { font-size: 12px; color: var(--text-t); margin-top: 8px; line-height: 1.6; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━
+   C. 명목형 시각화
+━━━━━━━━━━━━━━━━━━━━━━━ */
+.nom-buckets {
+  display: flex; gap: 10px; align-items: flex-end; margin-bottom: 10px;
+}
+.nom-bucket {
+  flex: 1; border-radius: 10px; padding: 14px 10px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; border: 2px solid;
+}
+.nom-bucket-icon { font-size: 26px; }
+.nom-bucket-name {
+  font-size: 13px; font-weight: 700; text-align: center; line-height: 1.3;
+}
+.nom-bucket-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 600;
+}
+.nom-no-order {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 10px 14px; border-radius: 8px;
+  background: var(--surface2); font-size: 13px; color: var(--text-s);
+}
+.nom-no-order .strike {
+  text-decoration: line-through; color: var(--text-t);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━
+   D. 순서형 시각화
+━━━━━━━━━━━━━━━━━━━━━━━ */
+.ord-ladder {
+  display: flex; align-items: flex-end; gap: 8px; margin-bottom: 10px;
+}
+.ord-step { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+.ord-bar-bg { width: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
+.ord-bar {
+  width: 100%; border-radius: 6px 6px 0 0;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 6px;
+}
+.ord-bar-val { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.8); }
+.ord-step-name { font-size: 12px; font-weight: 700; text-align: center; }
+.ord-arrow-row {
+  display: flex; align-items: center; gap: 2px; margin-bottom: 10px;
+}
+.ord-gap-label {
+  flex: 1; text-align: center; font-size: 11px; color: var(--text-t);
+  padding: 4px 6px; background: var(--surface2); border-radius: 6px;
+}
+.ord-gap-arrow { font-size: 13px; color: var(--text-t); padding: 0 2px; }
+.ord-note { font-size: 12px; color: var(--text-t); line-height: 1.65; }
+.ord-warn {
+  display: flex; gap: 8px; align-items: flex-start;
+  background: #FBF0DC; border: 1px solid #E8B95A;
+  border-radius: 8px; padding: 10px 12px;
+  font-size: 12px; color: var(--D-dk); line-height: 1.65; margin-top: 8px;
+}
+
+/* ── 비교 표 ── */
+.compare-wrap {
+  overflow-x: auto; border: 1px solid var(--border);
+  border-radius: 14px; background: var(--surface); margin-bottom: 48px;
+}
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 580px; }
+thead th {
+  background: var(--surface2); color: var(--text-s);
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; padding: 10px 14px;
+  border-bottom: 1px solid var(--border); text-align: left;
+}
+tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:nth-child(even) td { background: var(--bg); }
+.td-tag {
+  display: inline-block; font-size: 12px; font-weight: 700;
+  padding: 3px 10px; border-radius: 999px;
+}
+
+/* ── 기억법 ── */
+.memory {
+  background: var(--text-p); border-radius: 16px;
+  padding: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+}
+.mem-item { }
+.mem-badge {
+  display: inline-block; font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: 999px; margin-bottom: 10px;
+}
+.mem-q { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 8px; line-height: 1.5; }
+.mem-a { font-size: 13px; color: rgba(255,255,255,.65); line-height: 1.75; }
+.mem-a strong { color: #fff; font-weight: 600; }
+.mem-divider { grid-column: 1/-1; height: 1px; background: rgba(255,255,255,.1); }
+
+@media (max-width: 600px) {
+  .two-col, .ops-grid, .memory { grid-template-columns: 1fr; }
+  .map-tree { flex-direction: column; }
+  .map-root { writing-mode: horizontal-tb; transform: none; padding: 10px 14px; }
+  .ord-ladder { gap: 4px; }
+  .nom-buckets { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- 헤더 -->
+  <p class="eyebrow">데이터 분석 기초</p>
+  <h1>데이터 유형 4종류<br>한눈에 이해하기</h1>
+  <p class="lead">
+    데이터는 <strong>어떻게 생겼느냐</strong>에 따라 4가지로 나뉩니다.
+    숫자인지 아닌지, 정수인지 소수인지, 순서가 있는지 없는지만 파악하면 됩니다.
+  </p>
+
+  <!-- 큰 그림 지도 -->
+  <div class="map-wrap">
+    <p class="map-title">전체 지도 — 4가지 데이터 유형</p>
+    <div class="map-tree">
+      <div class="map-root">모든 데이터</div>
+      <div class="map-connector">›</div>
+      <div class="map-branches">
+        <!-- 수치형 -->
+        <div class="map-branch">
+          <div class="map-parent" style="background:var(--A-bg); color:var(--A-dk);">수치형<br><span style="font-size:11px; font-weight:500;">(숫자)</span></div>
+          <div class="map-connector" style="font-size:14px; color:var(--text-t);">›</div>
+          <div class="map-children">
+            <div class="map-child" style="background:var(--A-bg); border-color:var(--A);">
+              <div class="map-child-name" style="color:var(--A-dk);">🔢 이산형</div>
+              <div class="map-child-key" style="color:var(--A);">셀 수 있는 정수</div>
+              <div class="map-child-ex" style="color:var(--A-dk);">주문 수, 고객 수</div>
+            </div>
+            <div class="map-child" style="background:var(--B-bg); border-color:var(--B);">
+              <div class="map-child-name" style="color:var(--B-dk);">📈 연속형</div>
+              <div class="map-child-key" style="color:var(--B);">소수 가능한 측정값</div>
+              <div class="map-child-ex" style="color:var(--B-dk);">키, 온도, 매출</div>
+            </div>
+          </div>
+        </div>
+        <!-- 범주형 -->
+        <div class="map-branch">
+          <div class="map-parent" style="background:var(--C-bg); color:var(--C-dk);">범주형<br><span style="font-size:11px; font-weight:500;">(카테고리)</span></div>
+          <div class="map-connector" style="font-size:14px; color:var(--text-t);">›</div>
+          <div class="map-children">
+            <div class="map-child" style="background:var(--C-bg); border-color:var(--C);">
+              <div class="map-child-name" style="color:var(--C-dk);">🏷️ 명목형</div>
+              <div class="map-child-key" style="color:var(--C);">순서 없는 범주</div>
+              <div class="map-child-ex" style="color:var(--C-dk);">성별, 혈액형</div>
+            </div>
+            <div class="map-child" style="background:var(--D-bg); border-color:var(--D);">
+              <div class="map-child-name" style="color:var(--D-dk);">🥇 순서형</div>
+              <div class="map-child-key" style="color:var(--D);">순서 있는 범주</div>
+              <div class="map-child-ex" style="color:var(--D-dk);">만족도, 등급</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━
+       A. 이산형 데이터
+  ━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <div class="section">
+    <div class="section-head" style="border-color:var(--A);">
+      <div class="section-num" style="background:var(--A);">1</div>
+      <div>
+        <div class="section-name-ko" style="color:var(--A-dk);">이산형 데이터</div>
+        <div class="section-name-en" style="color:var(--A);">Discrete Data</div>
+      </div>
+      <span class="section-tag" style="background:var(--A-bg); color:var(--A-dk);">수치형</span>
+    </div>
+
+    <div class="def-box" style="background:var(--A-bg);">
+      <div class="def-emoji">🔢</div>
+      <div class="def-text">
+        <strong>하나, 둘, 셋… 딱 떨어지는 정수값입니다.</strong><br>
+        1.5개, 2.7명처럼 중간 값이 존재하지 않습니다. "셀 수 있는" 것들이 모두 이산형입니다.
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <span>🧺</span>
+      <div><strong>비유:</strong> 쇼핑 카트에 담긴 물건을 세는 것과 같습니다. 물건은 1개, 2개, 3개는 있어도 <strong>1.5개는 있을 수 없습니다.</strong> 사람 수, 클릭 횟수, 주문 건수 — 모두 이렇게 딱 떨어집니다.</div>
+    </div>
+
+    <div class="two-col">
+      <!-- 시각화: 동그라미 카운터 -->
+      <div class="vis-card">
+        <div class="vis-label">주문 건수 — 오늘 들어온 주문</div>
+        <div class="disc-scene">
+          <div>
+            <div style="font-size:12px; color:var(--text-t); margin-bottom:8px;">존재하는 값</div>
+            <div class="disc-row">
+              <div class="disc-circle" style="background:var(--A);">1</div>
+              <div class="disc-arrow">→</div>
+              <div class="disc-circle" style="background:var(--A);">2</div>
+              <div class="disc-arrow">→</div>
+              <div class="disc-circle" style="background:var(--A);">3</div>
+              <div class="disc-arrow">→</div>
+              <div class="disc-circle" style="background:var(--A);">4</div>
+              <div class="disc-arrow">→</div>
+              <div class="disc-circle" style="background:var(--A);">5</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px; color:var(--text-t); margin-bottom:8px;">존재하지 않는 값</div>
+            <div class="disc-row">
+              <div class="disc-ghost">1.5?</div>
+              <div class="disc-ghost">2.3?</div>
+              <div class="disc-ghost">3.7?</div>
+              <div class="disc-label">← 주문 건수는 절대 이런 값이 될 수 없어요</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 시각화: 숫자선 (점만 존재) -->
+      <div class="vis-card">
+        <div class="vis-label">숫자선 — 점(●)만 존재, 사이는 비어있음</div>
+        <div class="num-line-wrap">
+          <div class="num-line" style="background: var(--border);">
+            <!-- 점들 -->
+            <div style="position:absolute; left:0%; top:-7px; width:18px; height:18px; border-radius:50%; background:var(--A); transform:translateX(-50%);"></div>
+            <div style="position:absolute; left:25%; top:-7px; width:18px; height:18px; border-radius:50%; background:var(--A); transform:translateX(-50%);"></div>
+            <div style="position:absolute; left:50%; top:-7px; width:18px; height:18px; border-radius:50%; background:var(--A); transform:translateX(-50%);"></div>
+            <div style="position:absolute; left:75%; top:-7px; width:18px; height:18px; border-radius:50%; background:var(--A); transform:translateX(-50%);"></div>
+            <div style="position:absolute; left:100%; top:-7px; width:18px; height:18px; border-radius:50%; background:var(--A); transform:translateX(-50%);"></div>
+          </div>
+          <div class="num-labels" style="margin-top: 6px;">
+            <span style="color:var(--A-dk); font-weight:600;">0</span>
+            <span style="color:var(--A-dk); font-weight:600;">1</span>
+            <span style="color:var(--A-dk); font-weight:600;">2</span>
+            <span style="color:var(--A-dk); font-weight:600;">3</span>
+            <span style="color:var(--A-dk); font-weight:600;">4</span>
+          </div>
+        </div>
+        <p class="num-note">점과 점 사이에는 아무 값도 없습니다.<br>2번째 점과 3번째 점 "사이"로 이동할 수 없습니다.</p>
+      </div>
+    </div>
+
+    <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-t); margin-bottom:8px;">실무 예시</p>
+    <div class="chips" style="margin-bottom: 16px;">
+      <span class="chip" style="background:var(--A-bg); color:var(--A-dk); border-color:var(--A);">고객 수</span>
+      <span class="chip" style="background:var(--A-bg); color:var(--A-dk); border-color:var(--A);">주문 건수</span>
+      <span class="chip" style="background:var(--A-bg); color:var(--A-dk); border-color:var(--A);">클릭 횟수</span>
+      <span class="chip" style="background:var(--A-bg); color:var(--A-dk); border-color:var(--A);">결석 횟수</span>
+      <span class="chip" style="background:var(--A-bg); color:var(--A-dk); border-color:var(--A);">판매 개수</span>
+    </div>
+
+    <div class="ops-grid">
+      <div class="ops-box" style="background:var(--A-bg);">
+        <div class="ops-title" style="color:var(--A-dk);">✅ 가능한 것</div>
+        <div class="ops-item">개수 세기 (몇 건?)</div>
+        <div class="ops-item">합산·평균 계산</div>
+        <div class="ops-item">비율 ("주문 건수 2배")</div>
+        <div class="ops-item">그래프로 표현</div>
+      </div>
+      <div class="ops-box" style="background:#FAEAF0;">
+        <div class="ops-title" style="color:#7A2347;">⚠️ 주의할 것</div>
+        <div class="ops-item">소수점 값은 나타나지 않음</div>
+        <div class="ops-item">평균은 소수로 나올 수 있음<br><span style="font-size:11px; color:var(--text-t);">(예: 평균 주문 2.3건은 가능)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━
+       B. 연속형 데이터
+  ━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <div class="section">
+    <div class="section-head" style="border-color:var(--B);">
+      <div class="section-num" style="background:var(--B);">2</div>
+      <div>
+        <div class="section-name-ko" style="color:var(--B-dk);">연속형 데이터</div>
+        <div class="section-name-en" style="color:var(--B);">Continuous Data</div>
+      </div>
+      <span class="section-tag" style="background:var(--B-bg); color:var(--B-dk);">수치형</span>
+    </div>
+
+    <div class="def-box" style="background:var(--B-bg);">
+      <div class="def-emoji">📏</div>
+      <div class="def-text">
+        <strong>측정하는 값으로, 소수점 아래로 끝없이 세밀해질 수 있습니다.</strong><br>
+        측정 도구가 정밀할수록 더 자세한 값을 얻을 수 있습니다. 두 값 사이에는 항상 또 다른 값이 존재합니다.
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <span>🌡️</span>
+      <div><strong>비유:</strong> 줄자로 키를 재는 것과 같습니다. 보통 줄자로는 160cm지만, 더 정밀한 도구로 재면 160.5cm, 더 정밀하면 160.52cm, 160.523cm…로 <strong>끝없이 세밀해집니다.</strong> 두 값 사이에는 언제나 또 다른 값이 있습니다.</div>
+    </div>
+
+    <div class="two-col">
+      <!-- 시각화: 줌인 -->
+      <div class="vis-card">
+        <div class="vis-label">키 측정 — 정밀도에 따라 값이 달라짐</div>
+        <div class="cont-zoom">
+          <div class="zoom-row">
+            <div class="zoom-level">일반 자</div>
+            <div class="zoom-line" style="background: linear-gradient(to right, var(--B-bg), var(--B));">
+              <div class="zoom-tick" style="left:60%;"></div>
+              <div class="zoom-tick-label" style="left:60%;">160</div>
+            </div>
+            <div class="zoom-val">160 cm</div>
+          </div>
+          <div class="zoom-row">
+            <div class="zoom-arrow" style="width:52px; text-align:right;">🔍</div>
+            <div style="flex:1; text-align:center; font-size:11px; color:var(--text-t);">더 정밀하게 측정하면…</div>
+            <div style="width:80px;"></div>
+          </div>
+          <div class="zoom-row">
+            <div class="zoom-level">정밀 저울</div>
+            <div class="zoom-line" style="background: linear-gradient(to right, var(--B-bg), var(--B));">
+              <div class="zoom-tick" style="left:50%;"></div>
+              <div class="zoom-tick-label" style="left:50%;">160.5</div>
+            </div>
+            <div class="zoom-val">160.5 cm</div>
+          </div>
+          <div class="zoom-row">
+            <div class="zoom-arrow" style="width:52px; text-align:right;">🔬</div>
+            <div style="flex:1; text-align:center; font-size:11px; color:var(--text-t);">더 더 정밀하게…</div>
+            <div style="width:80px;"></div>
+          </div>
+          <div class="zoom-row">
+            <div class="zoom-level">초정밀</div>
+            <div class="zoom-line" style="background: linear-gradient(to right, var(--B-bg), var(--B));">
+              <div class="zoom-tick" style="left:40%;"></div>
+              <div class="zoom-tick-label" style="left:40%;">160.52</div>
+            </div>
+            <div class="zoom-val">160.52 cm</div>
+          </div>
+        </div>
+        <p class="cont-note" style="margin-top:10px;">→ 측정 도구가 정밀해질수록 값도 더 세밀해집니다.</p>
+      </div>
+
+      <!-- 시각화: 끊김 없는 선 -->
+      <div class="vis-card">
+        <div class="vis-label">숫자선 — 빈틈 없이 연결된 선(─)</div>
+        <div style="margin: 18px 0 10px;">
+          <div style="position:relative; height:6px; border-radius:3px; background: linear-gradient(to right, var(--B-bg), var(--B));">
+            <!-- 이산형과 달리 선이 연속 -->
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:6px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--B-dk); font-weight:600;">
+            <span>159</span><span>159.5</span><span>160</span><span>160.5</span><span>161</span>
+          </div>
+        </div>
+        <div style="margin-top:12px; padding:10px 12px; background:var(--B-bg); border-radius:8px; font-size:12px; color:var(--B-dk); line-height:1.7;">
+          160과 161 사이에는<br>
+          160.1, 160.12, 160.123… 무한히 많은 값이 존재합니다.
+        </div>
+        <p class="cont-note" style="margin-top:10px;">선이 끊기지 않고 이어지는 것이 연속형의 핵심입니다.</p>
+      </div>
+    </div>
+
+    <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-t); margin-bottom:8px;">실무 예시</p>
+    <div class="chips" style="margin-bottom: 16px;">
+      <span class="chip" style="background:var(--B-bg); color:var(--B-dk); border-color:var(--B);">키</span>
+      <span class="chip" style="background:var(--B-bg); color:var(--B-dk); border-color:var(--B);">몸무게</span>
+      <span class="chip" style="background:var(--B-bg); color:var(--B-dk); border-color:var(--B);">온도</span>
+      <span class="chip" style="background:var(--B-bg); color:var(--B-dk); border-color:var(--B);">시간</span>
+      <span class="chip" style="background:var(--B-bg); color:var(--B-dk); border-color:var(--B);">거리</span>
+      <span class="chip" style="background:var(--B-bg); color:var(--B-dk); border-color:var(--B);">매출액</span>
+    </div>
+
+    <div class="ops-grid">
+      <div class="ops-box" style="background:var(--B-bg);">
+        <div class="ops-title" style="color:var(--B-dk);">✅ 가능한 것</div>
+        <div class="ops-item">소수점 값 포함 모든 연산</div>
+        <div class="ops-item">평균·표준편차</div>
+        <div class="ops-item">두 값 사이 비교</div>
+        <div class="ops-item">분포 분석 (히스토그램)</div>
+      </div>
+      <div class="ops-box" style="background:#FAEAF0;">
+        <div class="ops-title" style="color:#7A2347;">⚠️ 주의할 것</div>
+        <div class="ops-item">0이 "없음"인지 확인 필요<br><span style="font-size:11px; color:var(--text-t);">(온도 0°C ≠ 온도 없음)</span></div>
+        <div class="ops-item">무한한 정밀도 → 반올림 오차</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━
+       C. 명목형 데이터
+  ━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <div class="section">
+    <div class="section-head" style="border-color:var(--C);">
+      <div class="section-num" style="background:var(--C);">3</div>
+      <div>
+        <div class="section-name-ko" style="color:var(--C-dk);">명목형 데이터</div>
+        <div class="section-name-en" style="color:var(--C);">Nominal Data</div>
+      </div>
+      <span class="section-tag" style="background:var(--C-bg); color:var(--C-dk);">범주형</span>
+    </div>
+
+    <div class="def-box" style="background:var(--C-bg);">
+      <div class="def-emoji">🏷️</div>
+      <div class="def-text">
+        <strong>순서가 없는 이름·범주 데이터입니다.</strong><br>
+        값들은 그냥 "종류가 다를 뿐"이며, 어느 것이 더 크거나 작다고 말할 수 없습니다. 숫자로 코딩해도 그 숫자는 크기를 뜻하지 않습니다.
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <span>🪣</span>
+      <div><strong>비유:</strong> 여러 색깔의 양동이에 물건을 분류하는 것과 같습니다. 빨간 양동이, 파란 양동이, 노란 양동이 — 그냥 <strong>다른 종류</strong>일 뿐입니다. 빨강이 파랑보다 "더 크다"거나 "더 좋다"는 뜻이 없습니다.</div>
+    </div>
+
+    <div class="two-col">
+      <!-- 결제 수단 양동이 -->
+      <div class="vis-card">
+        <div class="vis-label">결제 수단 — 그냥 다른 종류일 뿐</div>
+        <div class="nom-buckets">
+          <div class="nom-bucket" style="background:var(--C-bg); border-color:var(--C);">
+            <div class="nom-bucket-icon">💳</div>
+            <div class="nom-bucket-name" style="color:var(--C-dk);">카드</div>
+            <div class="nom-bucket-count" style="color:var(--C);">45건</div>
+          </div>
+          <div class="nom-bucket" style="background:var(--C-bg); border-color:var(--C);">
+            <div class="nom-bucket-icon">💵</div>
+            <div class="nom-bucket-name" style="color:var(--C-dk);">현금</div>
+            <div class="nom-bucket-count" style="color:var(--C);">23건</div>
+          </div>
+          <div class="nom-bucket" style="background:var(--C-bg); border-color:var(--C);">
+            <div class="nom-bucket-icon">📱</div>
+            <div class="nom-bucket-name" style="color:var(--C-dk);">간편결제</div>
+            <div class="nom-bucket-count" style="color:var(--C);">31건</div>
+          </div>
+        </div>
+        <div class="nom-no-order">
+          <span>카드</span>
+          <span class="strike">&gt;</span>
+          <span>현금</span>
+          <span style="font-size:12px; color:var(--text-t);">— 이런 비교는 의미 없음</span>
+        </div>
+      </div>
+
+      <!-- 혈액형 -->
+      <div class="vis-card">
+        <div class="vis-label">혈액형 — 그냥 "다름", 순서 없음</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <div style="padding:12px 16px; border-radius:10px; background:var(--C-bg); border:2px solid var(--C); color:var(--C-dk); font-size:16px; font-weight:700; flex:1; text-align:center;">A형</div>
+          <div style="padding:12px 16px; border-radius:10px; background:var(--C-bg); border:2px solid var(--C); color:var(--C-dk); font-size:16px; font-weight:700; flex:1; text-align:center;">B형</div>
+          <div style="padding:12px 16px; border-radius:10px; background:var(--C-bg); border:2px solid var(--C); color:var(--C-dk); font-size:16px; font-weight:700; flex:1; text-align:center;">O형</div>
+          <div style="padding:12px 16px; border-radius:10px; background:var(--C-bg); border:2px solid var(--C); color:var(--C-dk); font-size:16px; font-weight:700; flex:1; text-align:center;">AB형</div>
+        </div>
+        <div style="font-size:12px; color:var(--text-t); line-height:1.7;">
+          숫자 코딩 예: A=1, B=2, O=3, AB=4<br>
+          하지만 이 숫자는 크기가 아닙니다.<br>
+          "AB형(4)이 A형(1)의 4배" — 아무 의미 없는 말입니다.
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-t); margin-bottom:8px;">실무 예시</p>
+    <div class="chips" style="margin-bottom: 16px;">
+      <span class="chip" style="background:var(--C-bg); color:var(--C-dk); border-color:var(--C);">성별</span>
+      <span class="chip" style="background:var(--C-bg); color:var(--C-dk); border-color:var(--C);">지역</span>
+      <span class="chip" style="background:var(--C-bg); color:var(--C-dk); border-color:var(--C);">혈액형</span>
+      <span class="chip" style="background:var(--C-bg); color:var(--C-dk); border-color:var(--C);">상품 카테고리</span>
+      <span class="chip" style="background:var(--C-bg); color:var(--C-dk); border-color:var(--C);">결제 수단</span>
+    </div>
+
+    <div class="ops-grid">
+      <div class="ops-box" style="background:var(--C-bg);">
+        <div class="ops-title" style="color:var(--C-dk);">✅ 가능한 것</div>
+        <div class="ops-item">개수 세기 (카드 45건)</div>
+        <div class="ops-item">비율 계산 (카드 결제 45%)</div>
+        <div class="ops-item">최빈값 (가장 많은 결제수단)</div>
+        <div class="ops-item">막대 그래프로 표현</div>
+      </div>
+      <div class="ops-box" style="background:#FAEAF0;">
+        <div class="ops-title" style="color:#7A2347;">❌ 하면 안 되는 것</div>
+        <div class="ops-item">순서 비교 (카드 &gt; 현금)</div>
+        <div class="ops-item">평균 구하기</div>
+        <div class="ops-item">더하기·빼기·비율 해석</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━
+       D. 순서형 데이터
+  ━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <div class="section">
+    <div class="section-head" style="border-color:var(--D);">
+      <div class="section-num" style="background:var(--D);">4</div>
+      <div>
+        <div class="section-name-ko" style="color:var(--D-dk);">순서형 데이터</div>
+        <div class="section-name-en" style="color:var(--D);">Ordinal Data</div>
+      </div>
+      <span class="section-tag" style="background:var(--D-bg); color:var(--D-dk);">범주형</span>
+    </div>
+
+    <div class="def-box" style="background:var(--D-bg);">
+      <div class="def-emoji">🥇</div>
+      <div class="def-text">
+        <strong>범주 사이에 순서가 있는 데이터입니다.</strong><br>
+        명목형과 달리 크고 작음을 비교할 수 있습니다. 하지만 각 단계 사이의 간격이 동일하다고 보기 어렵습니다.
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <span>🏁</span>
+      <div><strong>비유:</strong> 달리기 경주 결과와 같습니다. 1등 &gt; 2등 &gt; 3등 순서는 알 수 있습니다. 하지만 <strong>1등과 2등의 격차가 2등과 3등의 격차와 꼭 같지는 않습니다.</strong> 만족도 점수도 마찬가지 — 1점→2점과 4점→5점의 체감 차이가 다를 수 있습니다.</div>
+    </div>
+
+    <div class="two-col">
+      <!-- 회원 등급 사다리 -->
+      <div class="vis-card">
+        <div class="vis-label">회원 등급 — 순서는 있지만 간격은 불균일</div>
+        <div class="ord-ladder" style="height: 130px;">
+          <div class="ord-step">
+            <div class="ord-bar" style="height:32px; background:var(--D-bg); border:2px solid var(--D-mid); border-radius:6px 6px 0 0;">
+              <span class="ord-bar-val" style="color:var(--D-dk);">Lv.1</span>
+            </div>
+            <div class="ord-step-name" style="color:var(--D-dk);">브론즈</div>
+          </div>
+          <div class="ord-step">
+            <div class="ord-bar" style="height:62px; background:var(--D-mid); border-radius:6px 6px 0 0;">
+              <span class="ord-bar-val">Lv.2</span>
+            </div>
+            <div class="ord-step-name" style="color:var(--D-dk);">실버</div>
+          </div>
+          <div class="ord-step">
+            <div class="ord-bar" style="height:88px; background:var(--D); border-radius:6px 6px 0 0;">
+              <span class="ord-bar-val">Lv.3</span>
+            </div>
+            <div class="ord-step-name" style="color:var(--D-dk);">골드</div>
+          </div>
+          <div class="ord-step">
+            <div class="ord-bar" style="height:120px; background:var(--D-dk); border-radius:6px 6px 0 0;">
+              <span class="ord-bar-val">Lv.4</span>
+            </div>
+            <div class="ord-step-name" style="color:var(--D-dk);">VIP</div>
+          </div>
+        </div>
+        <div style="margin-top: 10px; display:flex; gap:6px; align-items:center; font-size:12px; color:var(--text-t); flex-wrap:wrap;">
+          <span style="background:var(--D-bg); border-radius:6px; padding:3px 8px; color:var(--D-dk); font-weight:600;">브론즈↑실버 격차</span>
+          <span>≠ 반드시</span>
+          <span style="background:var(--D-dk); border-radius:6px; padding:3px 8px; color:#fff; font-weight:600;">골드↑VIP 격차</span>
+        </div>
+      </div>
+
+      <!-- 만족도 점수 -->
+      <div class="vis-card">
+        <div class="vis-label">만족도 1~5점 — 순서는 알지만 간격은 ?</div>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:28px; height:28px; border-radius:50%; background:var(--D-bg); border:2px solid var(--D); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--D-dk); flex-shrink:0;">1</div>
+            <div style="flex:1; height:8px; border-radius:4px; background:var(--D-bg); border:1px solid var(--D-mid);"></div>
+            <div style="font-size:11px; color:var(--text-t); width: 60px;">매우 불만족</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:28px; height:28px; border-radius:50%; background:var(--D-bg); border:2px solid var(--D); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--D-dk); flex-shrink:0;">2</div>
+            <div style="flex:1; height:8px; border-radius:4px; background:var(--D-mid); opacity:.4;"></div>
+            <div style="font-size:11px; color:var(--text-t); width:60px;">불만족</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:28px; height:28px; border-radius:50%; background:var(--D-mid); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0;">3</div>
+            <div style="flex:1; height:8px; border-radius:4px; background:var(--D-mid); opacity:.6;"></div>
+            <div style="font-size:11px; color:var(--text-t); width:60px;">보통</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:28px; height:28px; border-radius:50%; background:var(--D); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0;">4</div>
+            <div style="flex:1; height:8px; border-radius:4px; background:var(--D); opacity:.8;"></div>
+            <div style="font-size:11px; color:var(--text-t); width:60px;">만족</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:28px; height:28px; border-radius:50%; background:var(--D-dk); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0;">5</div>
+            <div style="flex:1; height:8px; border-radius:4px; background:var(--D-dk);"></div>
+            <div style="font-size:11px; color:var(--text-t); width:60px;">매우 만족</div>
+          </div>
+        </div>
+        <div class="ord-warn">
+          <span>⚠️</span>
+          <span>1→2점 상승과 4→5점 상승이 같은 크기의 변화라고 단정할 수 없습니다.</span>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-t); margin-bottom:8px;">실무 예시</p>
+    <div class="chips" style="margin-bottom: 16px;">
+      <span class="chip" style="background:var(--D-bg); color:var(--D-dk); border-color:var(--D);">만족도 (1~5점)</span>
+      <span class="chip" style="background:var(--D-bg); color:var(--D-dk); border-color:var(--D);">회원 등급 (브론즈~VIP)</span>
+      <span class="chip" style="background:var(--D-bg); color:var(--D-dk); border-color:var(--D);">학점 (A~F)</span>
+      <span class="chip" style="background:var(--D-bg); color:var(--D-dk); border-color:var(--D);">위험 수준 (낮음~높음)</span>
+    </div>
+
+    <div class="ops-grid">
+      <div class="ops-box" style="background:var(--D-bg);">
+        <div class="ops-title" style="color:var(--D-dk);">✅ 가능한 것</div>
+        <div class="ops-item">순서 비교 (VIP &gt; 골드)</div>
+        <div class="ops-item">개수·비율 계산</div>
+        <div class="ops-item">최빈값·중앙값</div>
+        <div class="ops-item">순위 기반 분석</div>
+      </div>
+      <div class="ops-box" style="background:#FAEAF0;">
+        <div class="ops-title" style="color:#7A2347;">⚠️ 주의할 것</div>
+        <div class="ops-item">평균 해석 주의<br><span style="font-size:11px; color:var(--text-t);">(만족도 평균 3.2점의 의미?)</span></div>
+        <div class="ops-item">"2배 더 만족" 같은 표현 ❌</div>
+        <div class="ops-item">간격이 동일하다고 가정 금지</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 비교 표 ── -->
+  <p class="eyebrow" style="margin-bottom:10px;">한눈에 비교</p>
+  <div class="compare-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>유형</th>
+          <th>대분류</th>
+          <th>소수 가능?</th>
+          <th>순서 있음?</th>
+          <th>간격 균일?</th>
+          <th>대표 예시</th>
+          <th>평균 OK?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="td-tag" style="background:var(--A-bg); color:var(--A-dk);">🔢 이산형</span></td>
+          <td style="color:var(--text-s);">수치형</td>
+          <td>❌ 정수만</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td style="color:var(--text-s); font-size:12px;">주문 건수, 고객 수</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td><span class="td-tag" style="background:var(--B-bg); color:var(--B-dk);">📈 연속형</span></td>
+          <td style="color:var(--text-s);">수치형</td>
+          <td>✅ 무한 정밀</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td style="color:var(--text-s); font-size:12px;">키, 온도, 매출액</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td><span class="td-tag" style="background:var(--C-bg); color:var(--C-dk);">🏷️ 명목형</span></td>
+          <td style="color:var(--text-s);">범주형</td>
+          <td>해당 없음</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td style="color:var(--text-s); font-size:12px;">혈액형, 결제 수단</td>
+          <td>❌</td>
+        </tr>
+        <tr>
+          <td><span class="td-tag" style="background:var(--D-bg); color:var(--D-dk);">🥇 순서형</span></td>
+          <td style="color:var(--text-s);">범주형</td>
+          <td>해당 없음</td>
+          <td>✅</td>
+          <td>❌</td>
+          <td style="color:var(--text-s); font-size:12px;">만족도, 회원 등급</td>
+          <td>⚠️ 주의</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── 기억법 ── -->
+  <div style="margin-top: 36px;">
+    <div class="memory">
+      <div class="mem-item">
+        <div class="mem-badge" style="background:var(--A-bg); color:var(--A-dk);">이산형 vs 연속형</div>
+        <div class="mem-q">"1.5개가 가능한가?"</div>
+        <div class="mem-a">불가 → <strong>이산형</strong> / 가능 → <strong>연속형</strong><br>
+        주문 1.5건은 없다 → 이산형<br>
+        키 160.5cm는 있다 → 연속형</div>
+      </div>
+      <div class="mem-item">
+        <div class="mem-badge" style="background:var(--C-bg); color:var(--C-dk);">명목형 vs 순서형</div>
+        <div class="mem-q">"A가 B보다 크다고 할 수 있나?"</div>
+        <div class="mem-a">없다 → <strong>명목형</strong> / 있다 → <strong>순서형</strong><br>
+        카드 &gt; 현금? 없다 → 명목형<br>
+        VIP &gt; 골드? 있다 → 순서형</div>
+      </div>
+      <div class="mem-divider"></div>
+      <div class="mem-item" style="grid-column: 1/-1;">
+        <div class="mem-badge" style="background:rgba(255,255,255,.1); color:rgba(255,255,255,.6);">판별 순서</div>
+        <div class="mem-q">데이터를 보면 이 순서로 물어보세요</div>
+        <div class="mem-a">
+          <strong>① 숫자인가?</strong> → 수치형 / 아니면 범주형<br>
+          <strong>② (수치형이라면) 소수가 가능한가?</strong> → 연속형 / 정수만이면 이산형<br>
+          <strong>③ (범주형이라면) 순서가 있는가?</strong> → 순서형 / 없으면 명목형
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
