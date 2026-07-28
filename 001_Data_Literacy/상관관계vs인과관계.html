@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>상관관계 vs 인과관계 PBL 실습</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f5f5f3;
+    --bg-tertiary: #eeede8;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6b67;
+    --text-tertiary: #9b9b96;
+    --border: rgba(0,0,0,0.12);
+    --border-md: rgba(0,0,0,0.22);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* blue ramp */
+    --blue-50: #E6F1FB;
+    --blue-200: #85B7EB;
+    --blue-400: #378ADD;
+    --blue-800: #0C447C;
+    --blue-900: #042C53;
+    /* green ramp */
+    --green-50: #EAF3DE;
+    --green-200: #97C459;
+    --green-400: #639922;
+    --green-800: #27500A;
+    /* red */
+    --red-50: #FCEBEB;
+    --red-200: #F09595;
+    --red-800: #501313;
+    /* teal */
+    --teal-50: #E1F5EE;
+    --teal-400: #1D9E75;
+    --teal-800: #085041;
+    /* amber */
+    --amber-50: #FAEEDA;
+    --amber-200: #FAC775;
+    --amber-800: #412402;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    background: var(--bg);
+    border-radius: var(--radius-lg);
+    border: 0.5px solid var(--border);
+    padding: 2rem;
+  }
+
+  .header { margin-bottom: 1.5rem; }
+  .header h1 { font-size: 20px; font-weight: 500; color: var(--text-primary); margin-bottom: 4px; }
+  .header p { font-size: 13px; color: var(--text-secondary); }
+
+  .progress-bar { height: 4px; background: var(--bg-secondary); border-radius: 2px; margin: 1rem 0 4px; }
+  .progress-fill { height: 4px; background: var(--teal-400); border-radius: 2px; transition: width 0.4s ease; }
+  .progress-label { font-size: 12px; color: var(--text-tertiary); }
+
+  /* Scenario */
+  .step-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  .scenario-text {
+    font-size: 15px;
+    color: var(--text-primary);
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+    font-style: italic;
+    padding: 1rem 1.25rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--border-md);
+  }
+
+  /* Choice buttons */
+  .choice-row { display: flex; gap: 8px; margin-bottom: 1.25rem; }
+
+  .choice-btn {
+    flex: 1;
+    padding: 12px 8px;
+    border: 1.5px solid var(--border-md);
+    border-radius: var(--radius-md);
+    background: var(--bg);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .choice-btn:hover:not(:disabled) {
+    background: var(--bg-secondary);
+    border-color: var(--border-md);
+  }
+  .choice-btn:disabled { cursor: default; }
+
+  /* Selected states — only the clicked button gets color */
+  .choice-btn.sel-corr {
+    background: var(--blue-50);
+    border-color: var(--blue-400);
+    color: var(--blue-800);
+  }
+  .choice-btn.sel-caus {
+    background: var(--green-50);
+    border-color: var(--green-400);
+    color: var(--green-800);
+  }
+  /* Wrong answer highlight */
+  .choice-btn.wrong {
+    background: var(--red-50);
+    border-color: var(--red-200);
+    color: var(--red-800);
+  }
+
+  /* Reason textarea */
+  .reason-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: var(--font);
+    resize: none;
+    min-height: 90px;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+  .reason-input:focus { outline: none; border-color: var(--border-md); }
+  .reason-input::placeholder { color: var(--text-tertiary); }
+
+  /* Submit / Next */
+  .action-btn {
+    width: 100%;
+    padding: 11px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md);
+    background: var(--bg);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .action-btn:hover:not(:disabled) { background: var(--bg-secondary); }
+  .action-btn:disabled { opacity: 0.35; cursor: default; }
+  .action-btn.primary {
+    background: var(--text-primary);
+    color: var(--bg);
+    border-color: var(--text-primary);
+    margin-top: 12px;
+  }
+  .action-btn.primary:hover { opacity: 0.85; background: var(--text-primary); }
+
+  /* Feedback */
+  .feedback-box {
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+    border: 0.5px solid;
+  }
+  .fb-correct { background: var(--green-50); border-color: var(--green-200); }
+  .fb-wrong   { background: var(--red-50);   border-color: var(--red-200); }
+  .fb-title { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+  .fb-correct .fb-title { color: var(--green-800); }
+  .fb-wrong   .fb-title { color: var(--red-800); }
+  .fb-body { font-size: 13px; line-height: 1.65; }
+  .fb-correct .fb-body { color: var(--green-800); }
+  .fb-wrong   .fb-body { color: var(--red-800); }
+
+  .hidden-var {
+    font-size: 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 7px 12px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+  }
+
+  .rewrite-section {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    margin-top: 10px;
+  }
+  .rewrite-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+  .rewrite-orig { font-size: 13px; text-decoration: line-through; color: var(--text-tertiary); margin-bottom: 4px; }
+  .rewrite-new  { font-size: 13px; color: var(--teal-400); font-weight: 500; }
+
+  /* Result screen */
+  .result-screen { display: none; }
+  .result-score { font-size: 52px; font-weight: 500; color: var(--text-primary); margin-bottom: 4px; text-align: center; }
+  .result-msg   { font-size: 14px; color: var(--text-secondary); text-align: center; margin-bottom: 1.5rem; }
+
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem; }
+  .result-card { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 14px; text-align: center; }
+  .result-card .val { font-size: 22px; font-weight: 500; color: var(--text-primary); }
+  .result-card .lbl { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* Per-scenario answer review in result */
+  .review-section { margin-top: 1.5rem; }
+  .review-title { font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 1rem; }
+  .review-item {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .review-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-secondary);
+    cursor: pointer;
+    user-select: none;
+  }
+  .review-badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .badge-ok   { background: var(--green-50); color: var(--green-800); border: 0.5px solid var(--green-200); }
+  .badge-fail { background: var(--red-50);   color: var(--red-800);   border: 0.5px solid var(--red-200); }
+  .review-num { font-size: 13px; font-weight: 500; color: var(--text-primary); flex: 1; }
+  .review-chevron { font-size: 12px; color: var(--text-tertiary); transition: transform 0.2s; }
+  .review-chevron.open { transform: rotate(180deg); }
+
+  .review-body {
+    display: none;
+    padding: 12px 14px;
+    border-top: 0.5px solid var(--border);
+  }
+  .review-body.open { display: block; }
+  .review-scenario-text {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+  }
+  .review-field-label { font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; margin-top: 10px; }
+  .review-field-val { font-size: 13px; color: var(--text-primary); line-height: 1.6; }
+  .review-field-val.reason-text {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 8px 10px;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    font-style: italic;
+  }
+  .review-field-val.reason-empty { color: var(--text-tertiary); font-style: italic; }
+  .correct-ans { color: var(--teal-400); font-weight: 500; }
+  .wrong-ans   { color: var(--red-800); font-weight: 500; }
+
+  .result-btn-row { display: flex; gap: 8px; margin-top: 1.5rem; }
+  .result-btn-row .action-btn { flex: 1; }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>상관관계 vs 인과관계 판단 실습</h1>
+    <p>시나리오를 읽고, 판단 근거를 작성한 뒤 확인하세요.</p>
+    <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+    <span class="progress-label" id="prog-label">0 / 6 완료</span>
+  </div>
+
+  <!-- Quiz area -->
+  <div id="quiz-area"></div>
+
+  <!-- Result screen -->
+  <div class="result-screen" id="result-area"></div>
+
+</div>
+
+<script>
+const scenarios = [
+  {
+    text: '"공부 시간이 길수록 성적이 높다. 따라서 공부 시간을 늘리면 성적이 오른다."',
+    type: 'correlation',
+    explanation: '이 진술은 상관관계(공부 시간 ↑ → 성적 ↑)를 인과관계로 단정하고 있습니다. 공부 시간이 성적에 영향을 줄 수는 있지만, 학습의 질, 이해도, 선행 지식 등 제3변수가 존재합니다. 실험적 통제 없이는 인과관계 주장은 과도합니다.',
+    hiddenVar: '숨은 변수: 학습 집중도, 수업 이해도, 선행 학습량',
+    originalExpr: '"공부 시간을 늘리면 성적이 오른다"',
+    rewriteExpr: '"공부 시간과 성적 사이에 양의 상관관계가 관찰되었다. 단, 학습 질 등의 요인을 추가로 검토할 필요가 있다."',
+  },
+  {
+    text: '"지역별 맥도날드 매장 수와 비만율이 함께 증가하는 추세가 있다."',
+    type: 'correlation',
+    explanation: '이 진술은 두 변수가 함께 변하는 관계를 관찰한 것으로, 전형적인 상관관계 표현입니다. "함께 증가하는 추세"라는 표현이 원인-결과를 주장하지 않으므로 올바른 표현입니다. 단, 이를 인과관계로 오해하지 않도록 주의해야 합니다.',
+    hiddenVar: '숨은 변수 가능성: 도시화 수준, 소득 수준, 운동 인프라',
+    originalExpr: '(이미 올바른 표현)',
+    rewriteExpr: '"맥도날드 매장 수와 비만율 사이에 정적 상관관계가 관찰되었다. 인과관계 단정은 불가."',
+  },
+  {
+    text: '"신약 A를 투여한 환자군(100명)의 회복률이 위약군(100명)보다 유의미하게 높았다. (p < 0.05, RCT 설계)"',
+    type: 'causation',
+    explanation: 'RCT(무작위 대조 실험)는 인과관계 추론의 표준 방법입니다. 무작위 배정으로 혼란 변수를 통제했고, p < 0.05로 통계적 유의성이 확인되었습니다. 이 경우 인과관계 주장의 충분한 근거가 됩니다.',
+    hiddenVar: '혼란 변수가 RCT 설계로 통제됨',
+    originalExpr: '(이미 올바른 표현)',
+    rewriteExpr: '"신약 A는 회복률을 유의미하게 향상시켰다. (RCT 기반 인과 추론 가능)"',
+  },
+  {
+    text: '"아이스크림 판매량이 많은 달에 익사 사고도 많이 발생한다. 아이스크림이 익사 위험을 높인다."',
+    type: 'correlation',
+    explanation: '전형적인 제3변수(숨은 변수) 오류입니다. 기온이 올라가면 아이스크림 판매량도 늘고, 수영 인구도 증가해 익사 사고도 늘어납니다. 두 변수 사이에 직접적 인과관계는 없으며, 상관관계를 인과관계로 잘못 해석한 사례입니다.',
+    hiddenVar: '숨은 변수(공통 원인): 여름 기온 상승',
+    originalExpr: '"아이스크림이 익사 위험을 높인다"',
+    rewriteExpr: '"아이스크림 판매량과 익사 사고 간 상관관계가 관찰되나, 공통 원인(기온)이 존재할 가능성이 높다."',
+  },
+  {
+    text: '"SNS 사용 시간이 길수록 우울감이 높다는 설문 결과가 나왔다. 따라서 SNS가 우울증을 유발한다."',
+    type: 'correlation',
+    explanation: '설문 데이터만으로는 인과관계를 주장할 수 없습니다. 역인과관계 가능성(우울한 사람이 SNS를 더 많이 사용)도 존재하고, 외로움·수면 부족 같은 제3변수도 개입할 수 있습니다. 통제된 실험 없이 "유발한다"는 표현은 과도한 주장입니다.',
+    hiddenVar: '역인과 가능성 + 숨은 변수: 외로움, 수면 부족, 기존 우울 성향',
+    originalExpr: '"SNS가 우울증을 유발한다"',
+    rewriteExpr: '"SNS 사용 시간과 우울감 사이에 유의미한 상관관계가 관찰되었다. 인과 방향 및 제3변수 검토가 필요하다."',
+  },
+  {
+    text: '"담배 1갑 이상 흡연자는 비흡연자 대비 폐암 발생률이 15배 높다. (수십 년간 코호트 연구, 생물학적 기전 확인)"',
+    type: 'causation',
+    explanation: '장기 코호트 연구 + 생물학적 기전 확인이라는 두 가지 강력한 근거가 있습니다. 흡연의 폐암 인과관계는 의학계에서 수십 년간 확립된 사실입니다. 시간 순서(흡연 → 폐암), 다른 변수 통제, 기전 확인 등 인과관계 성립 조건을 충족합니다.',
+    hiddenVar: '장기 코호트로 혼란변수 통제 + 발암물질 기전 확인',
+    originalExpr: '(이미 올바른 표현)',
+    rewriteExpr: '"흡연은 폐암의 주요 원인이다. (장기 관찰 연구 및 생물학적 기전으로 인과관계 확립)"',
+  }
+];
+
+let current = 0;
+let score = 0;
+let selected = null;
+// submitted: { correct, selected, reason, scenarioIdx }
+let submitted = [];
+
+function updateProgress() {
+  const done = submitted.length;
+  const pct = done / scenarios.length * 100;
+  document.getElementById('prog').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = done + ' / ' + scenarios.length + ' 완료';
+}
+
+function renderScenario(idx) {
+  selected = null;
+  const s = scenarios[idx];
+  document.getElementById('quiz-area').innerHTML = `
+    <div>
+      <p class="step-label">시나리오 ${idx + 1} / ${scenarios.length}</p>
+      <p class="scenario-text">${s.text}</p>
+
+      <p class="step-label" style="margin-bottom:8px;">이 진술은 어떤 관계인가요?</p>
+      <div class="choice-row">
+        <button class="choice-btn" id="btn-corr" onclick="selectChoice('correlation')">📊 상관관계</button>
+        <button class="choice-btn" id="btn-caus" onclick="selectChoice('causation')">🔗 인과관계</button>
+      </div>
+
+      <p class="step-label" style="margin-top:4px;">판단 근거를 작성하세요</p>
+      <textarea class="reason-input" id="reason-input" placeholder="왜 이렇게 판단했나요? 숨은 변수, 표현의 문제, 실험 설계 등을 자유롭게 적어보세요."></textarea>
+
+      <button class="action-btn" id="submit-btn" onclick="submitAnswer()" disabled>판단 확인하기</button>
+    </div>
+  `;
+  updateProgress();
+}
+
+function selectChoice(choice) {
+  selected = choice;
+  const corrBtn = document.getElementById('btn-corr');
+  const causBtn = document.getElementById('btn-caus');
+
+  // Reset both
+  corrBtn.className = 'choice-btn';
+  causBtn.className = 'choice-btn';
+
+  // Apply selected style only to clicked button
+  if (choice === 'correlation') corrBtn.className = 'choice-btn sel-corr';
+  else causBtn.className = 'choice-btn sel-caus';
+
+  document.getElementById('submit-btn').disabled = false;
+}
+
+function submitAnswer() {
+  const s = scenarios[current];
+  const reason = (document.getElementById('reason-input').value || '').trim();
+  const isCorrect = selected === s.type;
+  if (isCorrect) score++;
+
+  submitted.push({ correct: isCorrect, selected, reason, scenarioIdx: current });
+
+  // Disable inputs
+  document.getElementById('btn-corr').disabled = true;
+  document.getElementById('btn-caus').disabled = true;
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('reason-input').disabled = true;
+
+  // Mark wrong button
+  if (!isCorrect) {
+    const wrongBtn = selected === 'correlation'
+      ? document.getElementById('btn-corr')
+      : document.getElementById('btn-caus');
+    wrongBtn.className = 'choice-btn wrong';
+  }
+
+  const correctLabel = s.type === 'correlation' ? '📊 상관관계' : '🔗 인과관계';
+
+  const feedbackHtml = `
+    <div class="feedback-box ${isCorrect ? 'fb-correct' : 'fb-wrong'}">
+      <div class="fb-title">${isCorrect ? '✓ 정확한 판단입니다' : '✗ 정답은 ' + correctLabel + '입니다'}</div>
+      <div class="fb-body">${s.explanation}</div>
+    </div>
+    <div class="hidden-var">🔍 ${s.hiddenVar}</div>
+    <div class="rewrite-section">
+      <div class="rewrite-label">표현 수정 예시</div>
+      <div class="rewrite-orig">${s.originalExpr}</div>
+      <div class="rewrite-new">→ ${s.rewriteExpr}</div>
+    </div>
+    <button class="action-btn primary" onclick="nextScenario()">
+      ${current + 1 < scenarios.length ? '다음 시나리오 →' : '결과 확인하기 →'}
+    </button>
+  `;
+
+  document.getElementById('quiz-area').querySelector('div').insertAdjacentHTML('beforeend', feedbackHtml);
+}
+
+function nextScenario() {
+  current++;
+  if (current >= scenarios.length) {
+    showResult();
+  } else {
+    renderScenario(current);
+  }
+}
+
+function showResult() {
+  document.getElementById('quiz-area').classList.add('hidden');
+  const pct = Math.round(score / scenarios.length * 100);
+  const msg = pct >= 83 ? '훌륭한 판단력입니다!' : pct >= 50 ? '개념을 다시 한 번 정리해보세요.' : '상관관계와 인과관계 표를 다시 살펴보세요.';
+
+  // Build review items
+  let reviewHtml = submitted.map((sub, i) => {
+    const s = scenarios[sub.scenarioIdx];
+    const correctLabel = s.type === 'correlation' ? '📊 상관관계' : '🔗 인과관계';
+    const selectedLabel = sub.selected === 'correlation' ? '📊 상관관계' : '🔗 인과관계';
+    const reasonDisplay = sub.reason
+      ? `<div class="review-field-val reason-text">${sub.reason}</div>`
+      : `<div class="review-field-val reason-empty">작성한 근거가 없습니다.</div>`;
+    return `
+      <div class="review-item">
+        <div class="review-header" onclick="toggleReview(${i})">
+          <span class="review-badge ${sub.correct ? 'badge-ok' : 'badge-fail'}">${sub.correct ? '정답' : '오답'}</span>
+          <span class="review-num">시나리오 ${i + 1}</span>
+          <span class="review-chevron" id="chev-${i}">▼</span>
+        </div>
+        <div class="review-body" id="review-body-${i}">
+          <div class="review-scenario-text">${s.text}</div>
+          <div class="review-field-label">내 판단</div>
+          <div class="review-field-val ${sub.correct ? 'correct-ans' : 'wrong-ans'}">${selectedLabel}</div>
+          <div class="review-field-label">정답</div>
+          <div class="review-field-val correct-ans">${correctLabel}</div>
+          <div class="review-field-label">내가 작성한 근거</div>
+          ${reasonDisplay}
+          <div class="review-field-label" style="margin-top:12px;">해설</div>
+          <div class="review-field-val" style="color:var(--text-secondary);font-size:13px;line-height:1.65;">${s.explanation}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('result-area').style.display = 'block';
+  document.getElementById('result-area').innerHTML = `
+    <div class="result-score">${score} / ${scenarios.length}</div>
+    <div class="result-msg">${msg}</div>
+    <div class="result-grid">
+      <div class="result-card"><div class="val">${pct}%</div><div class="lbl">정답률</div></div>
+      <div class="result-card"><div class="val">${scenarios.length - score}</div><div class="lbl">틀린 문항</div></div>
+    </div>
+
+    <div class="review-section">
+      <div class="review-title">시나리오별 내 답변 확인</div>
+      ${reviewHtml}
+    </div>
+
+    <div class="result-btn-row">
+      <button class="action-btn" onclick="restart()">다시 풀기</button>
+    </div>
+  `;
+
+  document.getElementById('prog').style.width = '100%';
+  document.getElementById('prog-label').textContent = scenarios.length + ' / ' + scenarios.length + ' 완료';
+}
+
+function toggleReview(i) {
+  const body = document.getElementById('review-body-' + i);
+  const chev = document.getElementById('chev-' + i);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+function restart() {
+  current = 0; score = 0; submitted = []; selected = null;
+  document.getElementById('result-area').style.display = 'none';
+  document.getElementById('result-area').innerHTML = '';
+  document.getElementById('quiz-area').classList.remove('hidden');
+  renderScenario(0);
+}
+
+renderScenario(0);
+</script>
+</body>
+</html>
